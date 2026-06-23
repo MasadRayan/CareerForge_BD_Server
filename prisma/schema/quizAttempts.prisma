@@ -1,0 +1,19 @@
+// ─── QuizAttempts ────────────────────────────────────────────
+// A user's answer to a single quiz question. Feeds the interview
+// component of the readiness score (accuracy %).
+
+model QuizAttempts {
+  id              String   @id @default(uuid())
+  user_id         String
+  question_id     String
+  selected_answer String
+  is_correct      Boolean
+  attempted_at    DateTime @default(now())
+
+  user     Users         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  question QuizQuestions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([question_id])
+  @@map("quiz_attempts")
+}

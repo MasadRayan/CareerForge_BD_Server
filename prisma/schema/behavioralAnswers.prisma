@@ -1,0 +1,20 @@
+// ─── BehavioralAnswers ───────────────────────────────────────
+// A user's answer to a behavioral question, with Gemini's STAR
+// feedback stored as JSON. Feeds the interview component of the
+// readiness score (structure_score avg).
+
+model BehavioralAnswers {
+  id          String   @id @default(uuid())
+  user_id     String
+  question_id String
+  answer_text String   @db.Text
+  ai_feedback Json? // { structure_score: int, star_adherence: string, suggestions: string[] }
+  answered_at DateTime @default(now())
+
+  user     Users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  question BehavioralQuestions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([question_id])
+  @@map("behavioral_answers")
+}

@@ -1,0 +1,30 @@
+// ─── Users ───────────────────────────────────────────────────
+// Root entity. `id` is the Firebase UID (not an auto-increment),
+// so every record links directly to the Firebase identity.
+
+model Users {
+  id               String   @id // Firebase UID
+  email            String   @unique
+  name             String
+  role             Role     @default(free_user)
+  target_role      String?
+  experience_level String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  // ─── Relations (1:N / 1:1) ────────────────────────────────
+  subscriptions     Subscriptions[]
+  transactions      Transactions[]
+  cvs               CVs[]
+  jobDescriptions   JobDescriptions[]
+  roadmaps          Roadmaps[]
+  streaks           Streaks?
+  quizAttempts      QuizAttempts[]
+  codeSubmissions   CodeSubmissions[]
+  behavioralAnswers BehavioralAnswers[]
+  readinessScores   ReadinessScores[]
+  usageQuota        UsageQuotas?
+  reportedIssues    ReportedIssues[]
+
+  @@map("users")
+}

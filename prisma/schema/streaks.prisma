@@ -1,0 +1,15 @@
+// ─── Streaks ─────────────────────────────────────────────────
+// 1:1 with Users. Tracks consecutive-day activity. Reset daily by
+// a cron job when last_active_date falls too far behind.
+
+model Streaks {
+  id               String   @id @default(uuid())
+  user_id          String   @unique // 1:1 with Users
+  current_streak   Int      @default(0)
+  longest_streak   Int      @default(0)
+  last_active_date DateTime
+
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("streaks")
+}

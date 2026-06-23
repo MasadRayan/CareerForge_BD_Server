@@ -1,0 +1,15 @@
+// ─── CodingProblems ──────────────────────────────────────────
+// Pre-seeded coding problems. Submissions run against Judge0 using
+// the test_cases stored here.
+
+model CodingProblems {
+  id          String            @id @default(uuid())
+  title       String
+  description String            @db.Text
+  difficulty  Difficulty
+  test_cases  Json // { input: string, expected_output: string }[]
+  submissions CodeSubmissions[]
+
+  @@index([difficulty])
+  @@map("coding_problems")
+}
