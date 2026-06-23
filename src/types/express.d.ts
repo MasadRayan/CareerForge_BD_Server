@@ -6,3 +6,18 @@ declare module "express" {
     decoded?: DecodedIdToken;
   }
 }
+
+
+declare global {
+  namespace Express {
+    interface Request {
+      decoded?: DecodedIdToken;
+      user?: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+      };
+    }
+  }
+}
