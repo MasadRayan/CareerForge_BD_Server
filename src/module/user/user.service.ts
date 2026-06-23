@@ -3,7 +3,7 @@ import AppError from "../../utils/AppError";
 import { CreateUserInterFace } from "./user.interface";
 
 const registerUserIntoDB = async (payload: CreateUserInterFace) => {
-    const {name, email, experience_level, target_role } = payload;
+    const {name, email, experience_level, target_role, photoURL } = payload;
 
     const isUserExists = await prisma.users.findUnique({
         where : {
@@ -20,14 +20,25 @@ const registerUserIntoDB = async (payload: CreateUserInterFace) => {
             name,
             email,
             experience_level,
-            target_role
+            target_role,
+            photoURL
         }
     })
 
     return user 
 }
 
+const getAllUserFromDB = async () => {
+    const users = await prisma.users.findMany({
+        orderBy : {
+            created_at : 'desc'
+        },
+    })
+    return users
+}
+
 
 export const userService = {
-    registerUserIntoDB
+    registerUserIntoDB,
+    getAllUserFromDB
 }

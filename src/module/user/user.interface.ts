@@ -3,4 +3,5 @@ export interface CreateUserInterFace {
     email: string;
     experience_level ?: string;
     target_role ?: string;
+    photoURL ?: string
 }
