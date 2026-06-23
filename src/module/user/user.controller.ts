@@ -24,18 +24,39 @@ const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const getASingleUser = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const email = req.params.email;
-        const user = await userService.getASingleUser(email);
-        sendResponse(res, 200, true, "User fetched successfully", user);
-    } catch (error: any) {
-        next(error)
-    }
+const getASingleUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const email = req.params.email;
+    const user = await userService.getASingleUser(email);
+    sendResponse(res, 200, true, "User fetched successfully", user);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+const updateASingleUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const email = req.params.email;
+    const payload = req.body;
+    const updatedUser = await userService.updateASingleUserInDB(email, payload);
+    sendResponse(res, 200, true, "User updated successfully", updatedUser);
+
+  } catch (error : any) {
+    next(error)
+  }
 };
 
 export const userController = {
   createUser,
   getAllUsers,
-  getASingleUser
+  getASingleUser,
+  updateASingleUser
 };
