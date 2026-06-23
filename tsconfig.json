@@ -6,6 +6,7 @@
     "lib": ["ESNext"],
     "rootDir": "./src",
     "outDir": "./dist",
+    "types": ["node"],
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -21,14 +22,6 @@
     "noImplicitReturns": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "baseUrl": ".",
-    "paths": {
-      "@config/*": ["src/config/*"],
-      "@middleware/*": ["src/middleware/*"],
-      "@modules/*": ["src/modules/*"],
-      "@utils/*": ["src/utils/*"],
-      "@jobs/*": ["src/jobs/*"]
-    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]
