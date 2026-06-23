@@ -1,0 +1,14 @@
+// ─── UsageQuotas ─────────────────────────────────────────────
+// 1:1 with Users. Enforces the free-tier analysis limit. Reset
+// monthly by the quota.middleware.
+
+model UsageQuotas {
+  id                       String   @id @default(uuid())
+  user_id                  String   @unique // 1:1 with Users
+  analyses_used_this_month Int      @default(0)
+  reset_date               DateTime
+
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("usage_quotas")
+}

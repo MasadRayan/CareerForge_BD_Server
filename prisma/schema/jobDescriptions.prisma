@@ -1,0 +1,16 @@
+// ─── JobDescriptions ─────────────────────────────────────────
+// A job posting the user wants to match their CV against.
+
+model JobDescriptions {
+  id         String   @id @default(uuid())
+  user_id    String
+  title      String
+  raw_text   String   @db.Text
+  created_at DateTime @default(now())
+
+  user     Users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  analyses Analyses[]
+
+  @@index([user_id])
+  @@map("job_descriptions")
+}

@@ -1,0 +1,21 @@
+// ─── Subscriptions ───────────────────────────────────────────
+// Tracks which plan a user is on. A user can have many rows over
+// time (history), but typically one active at a time (enforced in
+// application logic).
+
+model Subscriptions {
+  id         String    @id @default(uuid())
+  user_id    String
+  plan       Plan
+  status     SubStatus
+  started_at DateTime
+  expires_at DateTime
+  created_at DateTime  @default(now())
+
+  user         Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transactions Transactions[]
+
+  @@index([user_id])
+  @@index([status, expires_at])
+  @@map("subscriptions")
+}

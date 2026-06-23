@@ -1,0 +1,17 @@
+// ─── RoadmapWeeks ────────────────────────────────────────────
+// One week within a roadmap. Each week has its own topic summary,
+// resources, and daily tasks.
+
+model RoadmapWeeks {
+  id            String @id @default(uuid())
+  roadmap_id    String
+  week_number   Int
+  topic_summary String
+
+  roadmap    Roadmaps     @relation(fields: [roadmap_id], references: [id], onDelete: Cascade)
+  resources  Resources[]
+  dailyTasks DailyTasks[]
+
+  @@index([roadmap_id])
+  @@map("roadmap_weeks")
+}

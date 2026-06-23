@@ -1,0 +1,71 @@
+// ─── Enums ───────────────────────────────────────────────────
+// Shared across all models.
+
+enum Role {
+  free_user
+  premium_user
+  admin
+}
+
+enum Plan {
+  free
+  premium
+}
+
+enum SubStatus {
+  active
+  expired
+  cancelled
+}
+
+enum TxStatus {
+  pending
+  success
+  failed
+  refunded
+}
+
+enum RoadmapStatus {
+  active
+  completed
+  abandoned
+}
+
+enum ResourceType {
+  video
+  article
+  docs
+  course
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum JudgeStatus {
+  pending
+  accepted
+  wrong_answer
+  runtime_error
+  time_limit_exceeded
+}
+
+enum LogType {
+  error
+  ai_failure
+  judge0_failure
+}
+
+enum IssueType {
+  bad_ai_output
+  bug
+  other
+}
+
+enum IssueStatus {
+  open
+  in_review
+  resolved
+}

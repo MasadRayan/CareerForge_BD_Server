@@ -1,0 +1,16 @@
+// ─── DailyTasks ──────────────────────────────────────────────
+// A single task within a roadmap week. Marked complete by the user;
+// completions feed both the streak counter and the readiness score.
+
+model DailyTasks {
+  id              String    @id @default(uuid())
+  roadmap_week_id String
+  description     String
+  is_completed    Boolean   @default(false)
+  completed_at    DateTime?
+
+  roadmapWeek RoadmapWeeks @relation(fields: [roadmap_week_id], references: [id], onDelete: Cascade)
+
+  @@index([roadmap_week_id])
+  @@map("daily_tasks")
+}

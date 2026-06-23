@@ -1,0 +1,18 @@
+// ─── ReportedIssues ──────────────────────────────────────────
+// User-reported problems (bad AI output, bugs). Managed via the
+// admin module.
+
+model ReportedIssues {
+  id          String      @id @default(uuid())
+  user_id     String
+  type        IssueType
+  description String      @db.Text
+  status      IssueStatus @default(open)
+  created_at  DateTime    @default(now())
+
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([status])
+  @@map("reported_issues")
+}

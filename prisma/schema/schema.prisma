@@ -1,7 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ─── Prisma Multi-file Schema Root ───────────────────────────
+// This is the root schema file. All other models live in their own
+// files within this folder (prisma/schema/*.prisma) and are merged
+// automatically by Prisma's multi-file schema feature.
 
 generator client {
   provider = "prisma-client"

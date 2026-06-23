@@ -1,0 +1,20 @@
+// ─── ReadinessScores ─────────────────────────────────────────
+// Composite career-readiness score, recalculated on each GET
+// /readiness-score and persisted for history.
+//
+// composite = ats×0.35 + roadmap×0.35 + interview×0.30
+
+model ReadinessScores {
+  id                  String   @id @default(uuid())
+  user_id             String
+  ats_component       Int // 0–100
+  roadmap_component   Int // 0–100
+  interview_component Int // 0–100
+  composite_score     Int // weighted average
+  calculated_at       DateTime @default(now())
+
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("readiness_scores")
+}

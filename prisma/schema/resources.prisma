@@ -1,0 +1,16 @@
+// ─── Resources ───────────────────────────────────────────────
+// A learning resource (video/article/docs/course) attached to a
+// roadmap week.
+
+model Resources {
+  id              String       @id @default(uuid())
+  roadmap_week_id String
+  title           String
+  url             String
+  type            ResourceType
+
+  roadmapWeek RoadmapWeeks @relation(fields: [roadmap_week_id], references: [id], onDelete: Cascade)
+
+  @@index([roadmap_week_id])
+  @@map("resources")
+}
