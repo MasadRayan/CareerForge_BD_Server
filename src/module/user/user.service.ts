@@ -46,6 +46,9 @@ const getASingleUser = async (email: string) => {
       email,
     },
   });
+  if (!user) {
+    throw new AppError("User not found", 404);
+  }
   return user;
 };
 
@@ -76,9 +79,29 @@ const updateASingleUserInDB = async (
   });
 };
 
+
+const deleteAUserFromDB = async (email: string) => {
+    const isUserExists = await prisma.users.findUnique({
+        where: {
+            email,
+        },
+    })
+
+    if (!isUserExists) {
+        throw new AppError("User not found", 404);
+    }
+
+    await prisma.users.delete({
+        where: {
+            email,
+        }
+    })
+}
+
 export const userService = {
   registerUserIntoDB,
   getAllUserFromDB,
   getASingleUser,
   updateASingleUserInDB,
+  deleteAUserFromDB
 };
