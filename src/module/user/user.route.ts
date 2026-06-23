@@ -6,5 +6,6 @@ const router = Router();
 
 router.post("/register", userController.createUser);
 router.get("/all", verifyFBToken, userController.getAllUsers);
+router.get("/me/:email", verifyFBToken, userController.getASingleUser);
 
 export const userRouter = router;
