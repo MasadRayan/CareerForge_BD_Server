@@ -4,7 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ESNext"],
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
     "types": ["node"],
     "resolveJsonModule": true,
@@ -23,6 +23,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts", "generated/**/*.ts"],
   "exclude": ["node_modules", "dist", "tests"]
 }
