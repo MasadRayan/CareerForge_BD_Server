@@ -1071,7 +1071,6 @@ GET    /api/admin/logs                     → System logs
 - [ ] Run full integration test suite against staging DB
 - [ ] Deployment hardening: env validation, graceful shutdown, health check endpoint (`GET /health`)
 - [ ] Update `README.md` with setup instructions and sandbox payment notes
-
 ---
 
 ## 11. Environment Variables
