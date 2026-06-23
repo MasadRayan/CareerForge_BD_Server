@@ -4,10 +4,10 @@ import sendResponse from "../utils/sendResponse";
 
 const globalHandler = (err: unknown, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof AppError) {
-    return sendResponse(res, err.statusCode, false, err.message, undefined, err.message);
+    return sendResponse(res, err.statusCode, false, err.message, undefined);
   }
   const message = err instanceof Error ? err.message : "Internal Server Error";
-  return sendResponse(res, 500, false, message, undefined, message);
+  return sendResponse(res, 500, false, message, undefined);
 };
 
 export default globalHandler;

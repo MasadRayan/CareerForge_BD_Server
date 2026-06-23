@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import env from './config/env.js'
 import { userRouter } from './module/user/user.route.js';
+import globalHandler from './middleware/globalErrorHandler.js';
 
 // ─── Route Imports (uncomment as each module is built) ───────
 // import authRoutes from './modules/users/users.routes.js'
@@ -80,6 +81,7 @@ app.use((_req: Request, res: Response) => {
     message: 'Route not found',
   })
 })
+app.use(globalHandler)
 
 // ─── Global Error Handler ─────────────────────────────────────
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
@@ -90,5 +92,6 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
       env.NODE_ENV === 'development' ? err.message : 'Internal server error',
   })
 })
+
 
 export default app

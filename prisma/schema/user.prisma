@@ -7,6 +7,7 @@ model Users {
   email            String   @unique
   name             String
   role             Role     @default(free_user)
+  photoURL         String   @default("")
   target_role      String?
   experience_level String?
   created_at       DateTime @default(now())
