@@ -1,0 +1,16 @@
+// ─── QuizQuestions ───────────────────────────────────────────
+// Pre-seeded question bank (NOT AI-generated per request). Filtered
+// by role_category and difficulty on GET /quiz.
+
+model QuizQuestions {
+  id             String         @id @default(uuid())
+  role_category  String
+  question_text  String
+  options        Json // { a: string, b: string, c: string, d: string }
+  correct_answer String
+  difficulty     Difficulty
+  attempts       QuizAttempts[]
+
+  @@index([role_category, difficulty])
+  @@map("quiz_questions")
+}

@@ -1,2 +1,6 @@
 node_modules
+generated
 .env
+prisma/migrations
+/generated/prisma
+careerforge_admin.json

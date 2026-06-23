@@ -1,0 +1,12 @@
+// ─── BehavioralQuestions ─────────────────────────────────────
+// Pre-seeded behavioral interview questions, grouped by category.
+
+model BehavioralQuestions {
+  id            String              @id @default(uuid())
+  question_text String
+  category      String
+  answers       BehavioralAnswers[]
+
+  @@index([category])
+  @@map("behavioral_questions")
+}

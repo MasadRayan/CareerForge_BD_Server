@@ -1,0 +1,13 @@
+// ─── Prisma Multi-file Schema Root ───────────────────────────
+// This is the root schema file. All other models live in their own
+// files within this folder (prisma/schema/*.prisma) and are merged
+// automatically by Prisma's multi-file schema feature.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

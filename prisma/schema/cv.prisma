@@ -1,0 +1,19 @@
+// ─── CVs ─────────────────────────────────────────────────────
+// A user's uploaded CV (PDF/DOCX). Versioned per user so history
+// is preserved when a new one is uploaded.
+
+model CVs {
+  id             String   @id @default(uuid())
+  user_id        String
+  version_number Int
+  file_url       String
+  raw_text       String   @db.Text
+  uploaded_at    DateTime @default(now())
+
+  user     Users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  analyses Analyses[]
+
+  @@unique([user_id, version_number]) // one version number per user
+  @@index([user_id])
+  @@map("cvs")
+}

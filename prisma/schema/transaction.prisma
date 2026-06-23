@@ -1,0 +1,23 @@
+// ─── Transactions ────────────────────────────────────────────
+// One payment attempt = one row. A Subscription may have several
+// (failed retries, renewals).
+
+model Transactions {
+  id                     String   @id @default(uuid())
+  user_id                String
+  subscription_id        String
+  amount                 Decimal
+  currency               String
+  gateway                String // e.g. "sslcommerz"
+  gateway_transaction_id String
+  status                 TxStatus
+  created_at             DateTime @default(now())
+
+  user         Users         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  subscription Subscriptions @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([subscription_id])
+  @@index([status])
+  @@map("transactions")
+}

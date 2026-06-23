@@ -1,0 +1,23 @@
+// ─── CodeSubmissions ─────────────────────────────────────────
+// A user's code submission against a problem, with the Judge0
+// verdict. Feeds the interview component of the readiness score
+// (acceptance %).
+
+model CodeSubmissions {
+  id           String      @id @default(uuid())
+  user_id      String
+  problem_id   String
+  code         String      @db.Text
+  language     String
+  judge0_token String?
+  status       JudgeStatus @default(pending)
+  submitted_at DateTime    @default(now())
+
+  user    Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  problem CodingProblems @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([problem_id])
+  @@index([status])
+  @@map("code_submissions")
+}

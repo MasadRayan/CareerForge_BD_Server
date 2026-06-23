@@ -1,0 +1,15 @@
+// ─── SystemLogs ──────────────────────────────────────────────
+// Standalone audit log (NOT FK-linked to Users). Written by the
+// error handler for AI and Judge0 failures, plus general errors.
+
+model SystemLogs {
+  id         String   @id @default(uuid())
+  type       LogType
+  message    String
+  metadata   Json?
+  created_at DateTime @default(now())
+
+  @@index([type])
+  @@index([created_at])
+  @@map("system_logs")
+}

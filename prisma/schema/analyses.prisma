@@ -1,0 +1,27 @@
+// ─── Analyses ────────────────────────────────────────────────
+// Junction entity with attributes: links ONE CV to ONE JobDescription
+// and stores the ATS analysis output from Gemini.
+//
+//   CVs ──< Analyses >── JobDescriptions
+//
+// Deleting either the CV or the JD removes the analysis (cascade),
+// since an analysis is meaningless without both inputs.
+
+model Analyses {
+  id                      String   @id @default(uuid())
+  cv_id                   String
+  jd_id                   String
+  ats_score               Int
+  keyword_match_breakdown Json // { matched: [], missing: [], score_per_category: {} }
+  gap_skills              Json // string[]
+  rewrite_suggestions     Json // { original: string, suggested: string }[]
+  created_at              DateTime @default(now())
+
+  cv       CVs             @relation(fields: [cv_id], references: [id], onDelete: Cascade)
+  jd       JobDescriptions @relation(fields: [jd_id], references: [id], onDelete: Cascade)
+  roadmaps Roadmaps[]
+
+  @@index([cv_id])
+  @@index([jd_id])
+  @@map("analyses")
+}
