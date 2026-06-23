@@ -3,6 +3,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import env from './config/env.js'
+import { userRouter } from './module/user/user.route.js';
 
 // ─── Route Imports (uncomment as each module is built) ───────
 // import authRoutes from './modules/users/users.routes.js'
@@ -69,6 +70,8 @@ app.get('/health', (_req: Request, res: Response) => {
 // app.use('/api/readiness-score', readinessRoutes)
 // app.use('/api/payments', paymentRoutes)
 // app.use('/api/admin', adminRoutes)
+
+app.use("/api/users", userRouter)
 
 // ─── 404 Handler ──────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {

@@ -3,7 +3,7 @@
 // so every record links directly to the Firebase identity.
 
 model Users {
-  id               String   @id // Firebase UID
+  id               String   @id @default(uuid())// Firebase UID
   email            String   @unique
   name             String
   role             Role     @default(free_user)
