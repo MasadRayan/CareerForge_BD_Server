@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import env from './config/env.js'
 import { userRouter } from './module/user/user.route.js';
+import { jobDescriptionRouter } from './module/jobDescription/jobDescription.route.js';
 import globalHandler from './middleware/globalErrorHandler.js';
 
 // ─── Route Imports (uncomment as each module is built) ───────
@@ -73,6 +74,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // app.use('/api/admin', adminRoutes)
 
 app.use("/api/users", userRouter)
+app.use("/api/jd", jobDescriptionRouter)
 
 // ─── 404 Handler ──────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {
