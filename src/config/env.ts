@@ -26,6 +26,11 @@ const envSchema = z.object({
   // Gemini
   GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
 
+  // Cloudinary (CV file storage)
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
+
   // SSLCommerz
   SSLCOMMERZ_STORE_ID: z.string().min(1, 'SSLCOMMERZ_STORE_ID is required'),
   SSLCOMMERZ_STORE_PASS: z.string().min(1, 'SSLCOMMERZ_STORE_PASS is required'),

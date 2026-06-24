@@ -7,8 +7,8 @@ const router = Router();
 
 router.post("/register", userController.createUser);
 router.get("/all", verifyFBToken, verifyAdmin, userController.getAllUsers);
-router.get("/me/:email",  userController.getASingleUser);
+router.get("/me/:email", verifyFBToken, userController.getASingleUser);
 router.patch("/update/:email", verifyFBToken, userController.updateASingleUser);
-router.delete("/delete/:email", userController.deleteASingleUser);
+router.delete("/delete/:email", verifyFBToken, verifyAdmin, userController.deleteASingleUser);
 
 export const userRouter = router;
