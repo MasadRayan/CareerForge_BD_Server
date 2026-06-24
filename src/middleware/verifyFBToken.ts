@@ -18,11 +18,9 @@ export const verifyFBToken = async (
   const token = authHeader.split(" ")[1];
 
   try {
-    // ─── Step 1: Verify Firebase token ────────────────────
     const decoded = await firebaseAuth.verifyIdToken(token);
     req.decoded = decoded;
 
-    // ─── Step 2: Fetch user from DB using email ────────────
     const user = await prisma.users.findUnique({
       where: { email: decoded.email },
       select: {
@@ -38,7 +36,6 @@ export const verifyFBToken = async (
       return;
     }
 
-    // ─── Step 3: Attach to request ────────────────────────
     req.user = {
       id: user.id,
       name: user.name,
