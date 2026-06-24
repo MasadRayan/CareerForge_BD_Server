@@ -15,7 +15,7 @@ const createCV = async (
       throw new AppError("No file uploaded. Attach a PDF or DOCX file.", 400);
     }
 
-    const userId = "req.user!.id";
+    const userId = req.user!.id;
     const cv = await cvService.createCVInDB(userId, {
       buffer: file.buffer,
       mimetype: file.mimetype,
