@@ -12,13 +12,14 @@ const createJobDescriptionIntoDB = async (
   userId: string,
   payload: CreateJobDescriptionInterface,
 ) => {
-  const { title, raw_text } = payload;
+  const { title, raw_text, interview_date } = payload;
 
   const jobDescription = await prisma.jobDescriptions.create({
     data: {
       title,
       raw_text,
       user_id: userId,
+      interview_date: interview_date ? new Date(interview_date) : null,
     },
   });
 
@@ -66,7 +67,7 @@ const updateASingleJobDescriptionInDB = async (
   id: string,
   payload: UpdateJobDescriptionInterface,
 ) => {
-  const { title, raw_text } = payload;
+  const { title, raw_text, interview_date } = payload;
 
   const isJobDescriptionExists = await prisma.jobDescriptions.findFirst({
     where: {
@@ -86,6 +87,7 @@ const updateASingleJobDescriptionInDB = async (
     data: {
       title,
       raw_text,
+      interview_date: interview_date ? new Date(interview_date) : undefined,
     },
   });
 
