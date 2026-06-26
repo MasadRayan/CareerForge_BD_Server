@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { analysisController } from "./analysis.controller.js";
 import { verifyFBToken } from "../../middleware/verifyFBToken.js";
+import { usageQuota } from "../../middleware/usagesQuotas.js";
 
 const router = Router();
 
