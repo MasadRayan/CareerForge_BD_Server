@@ -68,10 +68,21 @@ const deleteASingleUser = async (
   }
 };
 
+const getRoleOfUser = async (req: Request, res: Response, next: NextFunction) => {
+  const id = req.user!.id
+  try {
+    const userRole = await userService.getRoleOfUserFromDB(id);
+    sendResponse(res, 200, true, "User role fetched successfully", userRole);
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const userController = {
   createUser,
   getAllUsers,
   getASingleUser,
   updateASingleUser,
-  deleteASingleUser
+  deleteASingleUser,
+  getRoleOfUser
 };
