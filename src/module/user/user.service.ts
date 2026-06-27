@@ -98,10 +98,23 @@ const deleteAUserFromDB = async (email: string) => {
     })
 }
 
+const getRoleOfUserFromDB = async(id: string) => {
+    const userRole = await prisma.users.findUnique({
+        where: {
+            id,
+        },
+        select: {
+            role: true,
+        }
+    })
+    return userRole
+}
+
 export const userService = {
   registerUserIntoDB,
   getAllUserFromDB,
   getASingleUser,
   updateASingleUserInDB,
-  deleteAUserFromDB
+  deleteAUserFromDB,
+  getRoleOfUserFromDB
 };

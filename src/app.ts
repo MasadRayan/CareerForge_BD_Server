@@ -5,21 +5,10 @@ import env from './config/env.js'
 import { userRouter } from './module/user/user.route.js';
 import { jobDescriptionRouter } from './module/jobDescription/jobDescription.route.js';
 import { cvRouter } from './module/cv/cv.route.js';
+import { analysisRouter } from './module/analysis/analysis.route.js';
 import globalHandler from './middleware/globalErrorHandler.js';
 import limiter from './middleware/ratelimit.js';
 
-// ─── Route Imports (uncomment as each module is built) ───────
-// import authRoutes from './modules/users/users.routes.js'
-// import cvRoutes from './modules/cv/cv.routes.js'
-// import jdRoutes from './modules/jobDescriptions/jobDescriptions.routes.js'
-// import analysisRoutes from './modules/analysis/analysis.routes.js'
-// import roadmapRoutes from './modules/roadmap/roadmap.routes.js'
-// import quizRoutes from './modules/quiz/quiz.routes.js'
-// import codingRoutes from './modules/coding/coding.routes.js'
-// import behavioralRoutes from './modules/behavioral/behavioral.routes.js'
-// import readinessRoutes from './modules/readiness/readiness.routes.js'
-// import paymentRoutes from './modules/payments/payments.routes.js'
-// import adminRoutes from './modules/admin/admin.routes.js'
 
 const app: Application = express()
 
@@ -43,24 +32,12 @@ app.get('/health', (_req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   })
 })
-// ─── API Routes ───────────────────────────────────────────────
-// app.use('/api/auth', authRoutes)
-// app.use('/api/cv', cvRoutes)
-// app.use('/api/jd', jdRoutes)
-// app.use('/api/analysis', analysisRoutes)
-// app.use('/api/roadmap', roadmapRoutes)
-// app.use('/api/quiz', quizRoutes)
-// app.use('/api/coding-problems', codingRoutes)
-// app.use('/api/behavioral-questions', behavioralRoutes)
-// app.use('/api/readiness-score', readinessRoutes)
-// app.use('/api/payments', paymentRoutes)
-// app.use('/api/admin', adminRoutes)
 
 app.use("/api/users", userRouter)
 app.use("/api/jd", jobDescriptionRouter)
 app.use("/api/cv", cvRouter)
+app.use("/api/analysis", analysisRouter)
 
-// ─── 404 Handler ──────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
