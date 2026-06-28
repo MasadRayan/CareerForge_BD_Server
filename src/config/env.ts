@@ -22,9 +22,10 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().min(1, 'FIREBASE_PROJECT_ID is required'),
   FIREBASE_CLIENT_EMAIL: z.string().min(1, 'FIREBASE_CLIENT_EMAIL is required'),
   FIREBASE_PRIVATE_KEY: z.string().min(1, 'FIREBASE_PRIVATE_KEY is required'),
-
-  // Gemini
   GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, 'CLOUDINARY_CLOUD_NAME is required'),
+  CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
+  CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
 
   // SSLCommerz
   SSLCOMMERZ_STORE_ID: z.string().min(1, 'SSLCOMMERZ_STORE_ID is required'),
@@ -43,6 +44,7 @@ const envSchema = z.object({
 
   // Frontend
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
+  GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY is required'),
 })
 
 const parsed = envSchema.safeParse(process.env)

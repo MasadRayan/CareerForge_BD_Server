@@ -905,64 +905,114 @@ Churn          = (subscriptions with status='expired' this month) / (active subs
 
 ## 8. REST API Reference
 
-All endpoints prefixed with `/api`. All protected routes require `Authorization: Bearer <firebase_id_token>`.
+> All planned backend endpoints are listed below. Protected routes require `Authorization: Bearer <firebase_id_token>`, unless otherwise noted.
+
+### Public / System Endpoints
+```
+GET    /health                             → Health check for uptime/status
+GET    /api-docs                           → Swagger/OpenAPI UI
+POST   /api/payments/webhook               → SSLCommerz IPN callback (public)
+```
 
 ### Auth & Users
 ```
-POST   /api/auth/sync                      → Upsert user on first login
-GET    /api/users/me                       → Own profile
-PATCH  /api/users/me                       → Update profile
-DELETE /api/users/me                       → Delete account
+POST   /api/auth/sync                      → Upsert user on first Firebase login
+GET    /api/users/me                       → Fetch current user profile
+PATCH  /api/users/me                       → Update profile fields
+DELETE /api/users/me                       → Delete account and all associated user data
 ```
 
-### CV & Job Descriptions
+### CV Module
 ```
-POST   /api/cv                             → Upload CV (multipart)
-GET    /api/cv                             → List own CVs
-GET    /api/cv/:id                         → Get CV detail
-POST   /api/jd                             → Submit job description
-GET    /api/jd                             → List own JDs
-```
-
-### Analysis & Roadmap
-```
-POST   /api/analysis                       → Run ATS analysis [quota guarded]
-GET    /api/analysis                       → List own analyses
-GET    /api/analysis/:id                   → Get analysis detail
-POST   /api/roadmap                        → Generate roadmap
-GET    /api/roadmap/:id                    → Get roadmap + weeks + tasks
-PATCH  /api/roadmap/:id/tasks/:taskId      → Mark task complete
+POST   /api/cv                             → Upload CV file (PDF or DOCX)
+GET    /api/cv                             → List current user's CV versions
+GET    /api/cv/:id                         → Get CV metadata and parsed text summary
+DELETE /api/cv/:id                         → Delete a CV version
 ```
 
-### Interview
+### Job Descriptions Module
 ```
-GET    /api/quiz                           → Fetch quiz questions
-POST   /api/quiz/attempt                   → Submit quiz answer
-GET    /api/coding-problems                → List coding problems
-POST   /api/coding-problems/:id/submit     → Submit code to Judge0
-GET    /api/behavioral-questions           → Fetch behavioral questions
-POST   /api/behavioral-questions/:id/answer→ Submit answer, get Gemini feedback
-GET    /api/readiness-score                → Get composite readiness score
+POST   /api/jd                             → Submit a job description text
+GET    /api/jd                             → List current user's job descriptions
+GET    /api/jd/:id                         → Get job description details
+DELETE /api/jd/:id                         → Delete a job description
 ```
 
-### Payments
+### Analysis Module
 ```
-POST   /api/payments/init                  → Initiate SSLCommerz payment
-POST   /api/payments/webhook               → SSLCommerz IPN (public)
-GET    /api/payments/history               → Own transaction history
+POST   /api/analysis                       → Run ATS analysis for CV + JD [quota guarded]
+GET    /api/analysis                       → List current user's analyses
+GET    /api/analysis/:id                   → Get analysis details
+DELETE /api/analysis/:id                   → Delete an analysis record
+```
+
+### Roadmap Module
+```
+POST   /api/roadmap                        → Generate roadmap from analysis and duration
+GET    /api/roadmap                        → List current user's roadmaps
+GET    /api/roadmap/:id                    → Get roadmap with weeks, resources, and tasks
+PATCH  /api/roadmap/:id/tasks/:taskId      → Mark roadmap task complete
+PATCH  /api/roadmap/:id                   → Update roadmap status or metadata
+DELETE /api/roadmap/:id                   → Delete a roadmap
+```
+
+### Quiz Module
+```
+GET    /api/quiz                           → Fetch quiz questions by category and difficulty
+POST   /api/quiz/attempt                   → Submit a quiz answer and get correctness
+GET    /api/quiz/history                   → List user's quiz attempt history
+```
+
+### Coding Interview Module
+```
+GET    /api/coding-problems                → List available coding problems
+GET    /api/coding-problems/:id            → Get coding problem details
+POST   /api/coding-problems/:id/submit     → Submit code to Judge0 for evaluation
+GET    /api/coding-problems/:id/submissions→ List user's submissions for a problem
+```
+
+### Behavioral Interview Module
+```
+GET    /api/behavioral-questions           → Fetch behavioral interview questions
+GET    /api/behavioral-questions/:id       → Get a single behavioral question
+POST   /api/behavioral-questions/:id/answer→ Submit answer, receive Gemini feedback
+GET    /api/behavioral-answers             → List user's behavioral answers and feedback
+```
+
+### Readiness Score Module
+```
+GET    /api/readiness-score                → Calculate and return composite readiness score
+GET    /api/readiness-history             → List past readiness score records
+```
+
+### Payments Module
+```
+POST   /api/payments/init                  → Initiate SSLCommerz payment session
+POST   /api/payments/webhook               → SSLCommerz IPN callback handler (public)
+GET    /api/payments/history               → Get user's transaction history
+GET    /api/payments/subscriptions         → List user's subscription records
+GET    /api/payments/status/:transactionId → Get transaction status
+```
+
+### Notifications / Emails
+```
+POST   /api/notifications/reminder         → Trigger a study reminder email (admin/test)
+POST   /api/notifications/expiry           → Trigger a subscription expiry email (admin/test)
 ```
 
 ### Admin (role: admin required)
 ```
-GET    /api/admin/users                    → All users
-GET    /api/admin/transactions             → All transactions
-GET    /api/admin/analytics                → Revenue analytics
-GET    /api/admin/usage                    → AI usage per user
-GET    /api/admin/issues                   → Reported issues
-PATCH  /api/admin/issues/:id               → Resolve issue
-GET    /api/admin/logs                     → System logs
+GET    /api/admin/users                    → Paginated list of users
+GET    /api/admin/transactions             → All transactions with filters
+GET    /api/admin/analytics                → Revenue and user analytics
+GET    /api/admin/usage                    → AI usage and quota analytics
+GET    /api/admin/issues                   → List reported issues
+PATCH  /api/admin/issues/:id               → Update issue status
+GET    /api/admin/logs                     → System logs with filtering
+POST   /api/admin/maintenance              → Trigger admin maintenance task
 ```
 
+---
 ---
 
 ## 9. Security Implementation
@@ -1071,7 +1121,6 @@ GET    /api/admin/logs                     → System logs
 - [ ] Run full integration test suite against staging DB
 - [ ] Deployment hardening: env validation, graceful shutdown, health check endpoint (`GET /health`)
 - [ ] Update `README.md` with setup instructions and sandbox payment notes
-
 ---
 
 ## 11. Environment Variables
