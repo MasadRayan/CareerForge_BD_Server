@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
 import { groqChatCompletion } from "../../config/groq.js";
-import { roadmapPrompt } from "./roadmap.prompt.js";
+import { roadmapPrompt, roadmapBatchPrompt } from "./roadmap.prompt.js";
 import {
   roadmapResponseSchema,
   type CreateRoadmapPayload,
@@ -44,15 +44,60 @@ const extractJsonObject = (raw: string): unknown => {
 };
 
 
+const BATCH_SIZE = 2;        // weeks per API call — keeps output ≤ 3 000 tokens
+const BATCH_DELAY_MS = 3_000; // pause between calls to avoid 429 rate-limit errors
+
+/** Sleep helper */
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Calls Groq in batches of BATCH_SIZE weeks to stay within free-tier limits.
+ * For short roadmaps (≤ 4 weeks) it uses a single call to save time.
+ */
 const callGroqForRoadmap = async (
   gapSkills: string[],
   durationWeeks: number,
 ): Promise<GroqRoadmapResponse> => {
+  // Short roadmaps: single call is fine.
+  if (durationWeeks <= 4) {
+    return callGroqSingleBatch(gapSkills, 1, durationWeeks, durationWeeks);
+  }
+
+  // Long roadmaps: batch to avoid 413 / 429.
+  const allWeeks: GroqRoadmapResponse["weeks"] = [];
+
+  for (let start = 1; start <= durationWeeks; start += BATCH_SIZE) {
+    const end = Math.min(start + BATCH_SIZE - 1, durationWeeks);
+
+    if (start > 1) {
+      // Wait before the next batch to respect the rate limit.
+      await sleep(BATCH_DELAY_MS);
+    }
+
+    const batch = await callGroqSingleBatch(gapSkills, start, end, durationWeeks);
+    allWeeks.push(...batch.weeks);
+  }
+
+  return { weeks: allWeeks };
+};
+
+/** Performs one Groq call for weeks [startWeek, endWeek]. */
+const callGroqSingleBatch = async (
+  gapSkills: string[],
+  startWeek: number,
+  endWeek: number,
+  totalWeeks: number,
+): Promise<GroqRoadmapResponse> => {
+  const prompt =
+    startWeek === 1 && endWeek === totalWeeks
+      ? roadmapPrompt(gapSkills, totalWeeks)          // original prompt for short plans
+      : roadmapBatchPrompt(gapSkills, startWeek, endWeek, totalWeeks); // batch prompt
+
   let raw: string;
   try {
     raw = await groqChatCompletion(
-      [{ role: "user", content: roadmapPrompt(gapSkills, durationWeeks) }],
-      { temperature: 0.4, maxTokens: 8192 },
+      [{ role: "user", content: prompt }],
+      { temperature: 0.4, maxTokens: 4096 },
     );
   } catch (error: any) {
     await prisma.systemLogs
@@ -60,12 +105,10 @@ const callGroqForRoadmap = async (
         data: {
           type: "ai_failure",
           message: error?.message ?? "Groq request failed",
-          metadata: { stage: "roadmap.create", provider: "groq" },
+          metadata: { stage: `roadmap.batch.${startWeek}-${endWeek}`, provider: "groq" },
         },
       })
-      .catch(() => {
-        // Logging must never mask the original error.
-      });
+      .catch(() => {});
     throw new AppError(
       "AI service is unavailable. Please try again in a moment.",
       502,
@@ -81,7 +124,7 @@ const callGroqForRoadmap = async (
           type: "ai_failure",
           message: "Groq returned malformed JSON for roadmap generation",
           metadata: {
-            stage: "roadmap.create",
+            stage: `roadmap.batch.${startWeek}-${endWeek}`,
             provider: "groq",
             issues: JSON.parse(JSON.stringify(validated.error.issues)),
           },

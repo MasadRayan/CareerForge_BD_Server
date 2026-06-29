@@ -3,7 +3,9 @@ import env from "./env.js";
 
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
-export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b";
+// llama-3.1-8b-instant: fastest free-tier model on Groq, ~14 400 req/day.
+// If you hit limits, fall back to "gemma2-9b-it" (also free, slightly slower).
+export const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
 
 export type GroqChatMessage = {
   role: "system" | "user" | "assistant";
