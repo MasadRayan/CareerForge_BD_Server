@@ -44,33 +44,25 @@ const extractJsonObject = (raw: string): unknown => {
 };
 
 
-const BATCH_SIZE = 2;        // weeks per API call — keeps output ≤ 3 000 tokens
-const BATCH_DELAY_MS = 3_000; // pause between calls to avoid 429 rate-limit errors
+const BATCH_SIZE = 2;        
+const BATCH_DELAY_MS = 3_000; 
 
-/** Sleep helper */
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/**
- * Calls Groq in batches of BATCH_SIZE weeks to stay within free-tier limits.
- * For short roadmaps (≤ 4 weeks) it uses a single call to save time.
- */
 const callGroqForRoadmap = async (
   gapSkills: string[],
   durationWeeks: number,
 ): Promise<GroqRoadmapResponse> => {
-  // Short roadmaps: single call is fine.
   if (durationWeeks <= 4) {
     return callGroqSingleBatch(gapSkills, 1, durationWeeks, durationWeeks);
   }
 
-  // Long roadmaps: batch to avoid 413 / 429.
   const allWeeks: GroqRoadmapResponse["weeks"] = [];
 
   for (let start = 1; start <= durationWeeks; start += BATCH_SIZE) {
     const end = Math.min(start + BATCH_SIZE - 1, durationWeeks);
 
     if (start > 1) {
-      // Wait before the next batch to respect the rate limit.
       await sleep(BATCH_DELAY_MS);
     }
 
@@ -81,7 +73,6 @@ const callGroqForRoadmap = async (
   return { weeks: allWeeks };
 };
 
-/** Performs one Groq call for weeks [startWeek, endWeek]. */
 const callGroqSingleBatch = async (
   gapSkills: string[],
   startWeek: number,
@@ -90,8 +81,8 @@ const callGroqSingleBatch = async (
 ): Promise<GroqRoadmapResponse> => {
   const prompt =
     startWeek === 1 && endWeek === totalWeeks
-      ? roadmapPrompt(gapSkills, totalWeeks)          // original prompt for short plans
-      : roadmapBatchPrompt(gapSkills, startWeek, endWeek, totalWeeks); // batch prompt
+      ? roadmapPrompt(gapSkills, totalWeeks)          
+      : roadmapBatchPrompt(gapSkills, startWeek, endWeek, totalWeeks); 
 
   let raw: string;
   try {
@@ -151,7 +142,7 @@ const computeDurationWeeks = (
   const diffDays = Math.ceil(
     (interviewDate.getTime() - now.getTime()) / DAY_IN_MS,
   );
-  if (diffDays <= 0) return fallback; // interview passed or is today
+  if (diffDays <= 0) return fallback; 
 
   const weeks = Math.ceil(diffDays / 7);
   return Math.min(Math.max(weeks, 1), 12);
@@ -209,16 +200,7 @@ const updateStreak = async (userId: string): Promise<void> => {
   });
 };
 
-// ─── Service functions ───────────────────────────────────────
 
-/**
- * Generates a roadmap from an existing analysis. The analysis's
- * gap_skills seed the roadmap prompt; duration_weeks is derived from
- * the job description's interview_date unless explicitly provided.
- *
- * The roadmap, its weeks, resources, and daily tasks are all created
- * atomically inside a transaction so a partial write never persists.
- */
 const createRoadmapInDB = async (
   userId: string,
   payload: CreateRoadmapPayload,
@@ -229,8 +211,7 @@ const createRoadmapInDB = async (
     throw new AppError("analysis_id is required", 400);
   }
 
-  // Load the analysis (scoped to the caller via cv.user_id) plus the
-  // job description that holds the interview_date.
+
   const analysis = await prisma.analyses.findFirst({
     where: { id: analysis_id, cv: { user_id: userId } },
     include: { jd: { select: { interview_date: true } } },
@@ -247,7 +228,6 @@ const createRoadmapInDB = async (
     durationWeeks,
   );
 
-  // Persist roadmap + nested weeks / resources / daily tasks atomically.
   const roadmap = await prisma.roadmaps.create({
     data: {
       analysis_id,
@@ -317,11 +297,7 @@ const getRoadmapFromDB = async (userId: string, id: string) => {
   return roadmap;
 };
 
-/**
- * Marks a daily task complete and updates the user's streak. The
- * task must belong to a roadmap owned by the caller (checked via the
- * nested roadmap → user relation).
- */
+
 const completeTaskInDB = async (
   userId: string,
   roadmapId: string,
