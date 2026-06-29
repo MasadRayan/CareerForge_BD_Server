@@ -6,6 +6,7 @@ import { userRouter } from './module/user/user.route.js';
 import { jobDescriptionRouter } from './module/jobDescription/jobDescription.route.js';
 import { cvRouter } from './module/cv/cv.route.js';
 import { analysisRouter } from './module/analysis/analysis.route.js';
+import { roadmapRouter } from './module/roadmap/roadmap.route.js';
 import globalHandler from './middleware/globalErrorHandler.js';
 import limiter from './middleware/ratelimit.js';
 
@@ -37,6 +38,7 @@ app.use("/api/users", userRouter)
 app.use("/api/jd", jobDescriptionRouter)
 app.use("/api/cv", cvRouter)
 app.use("/api/analysis", analysisRouter)
+app.use("/api/roadmap", roadmapRouter)
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

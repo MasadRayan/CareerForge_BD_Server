@@ -45,6 +45,7 @@ const envSchema = z.object({
   // Frontend
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
   GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY is required'),
+  GROQ_API_KEY_2: z.string().min(1, 'GROQ_API_KEY is required'),
 })
 
 const parsed = envSchema.safeParse(process.env)
