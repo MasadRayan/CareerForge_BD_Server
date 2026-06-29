@@ -9,6 +9,7 @@ export const cleanExtractedText = (raw: string): string =>
     .replace(/^\s*[-_=]{5,}\s*$/gm, "")
     .trim();
 
+    
 export const truncateText = (text: string, maxChars = 3_000): string => {
   if (text.length <= maxChars) return text;
   const cut = text.lastIndexOf(" ", maxChars);
