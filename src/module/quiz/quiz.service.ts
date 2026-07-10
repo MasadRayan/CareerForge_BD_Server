@@ -110,7 +110,6 @@ const submitAttemptToDB = async (
 ): Promise<AttemptResult> => {
   const { question_id, selected_answer } = payload;
 
-  // Fetch the question — includes correct_answer for server-side comparison
   const question = await prisma.quizQuestions.findUnique({
     where: { id: question_id },
     select: { id: true, correct_answer: true },
