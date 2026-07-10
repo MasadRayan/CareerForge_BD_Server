@@ -4,6 +4,7 @@ import type {
   QuizQueryParams,
   SubmitAttemptPayload,
   QuizQuestionResponse,
+  PaginatedQuizQuestionsResponse,
   AttemptResult,
   QuizStatsResponse,
 } from "./quiz.interface.js";
@@ -34,8 +35,8 @@ const stripAnswer = (q: {
 
 const getQuestionsFromDB = async (
   params: QuizQueryParams,
-): Promise<QuizQuestionResponse[]> => {
-  const { role_category, difficulty, limit = 10 } = params;
+): Promise<PaginatedQuizQuestionsResponse> => {
+  const { role_category, difficulty, page = 1, limit = 10 } = params;
 
   // Validate role_category if provided
   if (
@@ -56,42 +57,51 @@ const getQuestionsFromDB = async (
     );
   }
 
+  const safePage = Math.max(1, Number(page) || 1);
   const safeLimit = Math.min(Math.max(1, Number(limit) || 10), 50);
+  const skip = (safePage - 1) * safeLimit;
+  const where = {
+    ...(role_category ? { role_category } : {}),
+    ...(difficulty ? { difficulty } : {}),
+  };
 
-  const questions = await prisma.quizQuestions.findMany({
-    where: {
-      ...(role_category ? { role_category } : {}),
-      ...(difficulty ? { difficulty } : {}),
-    },
-    select: {
-      id: true,
-      role_category: true,
-      question_text: true,
-      options: true,
-      difficulty: true,
-      // correct_answer intentionally excluded here
-    },
-    take: safeLimit,
-    // Prisma doesn't support ORDER BY RANDOM natively; we shuffle in JS.
-    // For a small quiz bank this is fine; for 10k+ questions add a raw query.
-    orderBy: { id: "asc" }, // deterministic base order, shuffled below
-  });
+  const [questions, totalItems] = await Promise.all([
+    prisma.quizQuestions.findMany({
+      where,
+      select: {
+        id: true,
+        role_category: true,
+        question_text: true,
+        options: true,
+        difficulty: true,
+      },
+      orderBy: { id: "asc" },
+      skip,
+      take: safeLimit,
+    }),
+    prisma.quizQuestions.count({ where }),
+  ]);
 
-  if (questions.length === 0) {
-    throw new AppError(
-      "No questions found for the given filters. Try a different role or difficulty.",
-      404,
-    );
-  }
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / safeLimit);
 
-  // Fisher-Yates shuffle for randomised order
+  // Fisher-Yates shuffle for randomised order within the current page
   const shuffled = [...questions];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
-  return shuffled.slice(0, safeLimit).map(stripAnswer);
+  return {
+    questions: shuffled.map(stripAnswer),
+    pagination: {
+      currentPage: safePage,
+      limit: safeLimit,
+      totalItems,
+      totalPages,
+      hasNextPage: safePage < totalPages,
+      hasPreviousPage: safePage > 1,
+    },
+  };
 };
 
 const submitAttemptToDB = async (

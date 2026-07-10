@@ -4,6 +4,7 @@ import { z } from "zod";
 export interface QuizQueryParams {
   role_category?: string;
   difficulty?: "easy" | "medium" | "hard";
+  page?: number;
   limit?: number;
 }
 
@@ -33,6 +34,20 @@ export interface QuizQuestionResponse {
     d: string;
   };
   difficulty: "easy" | "medium" | "hard";
+}
+
+export interface QuizPaginationMeta {
+  currentPage: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PaginatedQuizQuestionsResponse {
+  questions: QuizQuestionResponse[];
+  pagination: QuizPaginationMeta;
 }
 
 export interface AttemptResult {

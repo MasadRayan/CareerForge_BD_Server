@@ -19,16 +19,17 @@ const getQuestions = async (
         | "medium"
         | "hard"
         | undefined,
+      page: req.query.page ? Number(req.query.page) : 1,
       limit: req.query.limit ? Number(req.query.limit) : 10,
     };
 
-    const questions = await quizService.getQuestionsFromDB(params);
+    const result = await quizService.getQuestionsFromDB(params);
     sendResponse(
       res,
       200,
       true,
-      `Fetched ${questions.length} question(s) successfully`,
-      questions,
+      `Fetched ${result.questions.length} question(s) successfully`,
+      result,
     );
   } catch (error) {
     next(error);
