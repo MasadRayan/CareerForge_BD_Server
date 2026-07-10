@@ -5,12 +5,7 @@ import { submitAttemptSchema } from "./quiz.interface.js";
 import AppError from "../../utils/AppError.js";
 import type { QuizQueryParams } from "./quiz.interface.js";
 
-/**
- * GET /api/quiz
- * Query params: role_category, difficulty, limit (default 10, max 50)
- *
- * Returns a list of quiz questions WITHOUT the correct_answer.
- */
+
 const getQuestions = async (
   req: Request,
   res: Response,
@@ -40,12 +35,6 @@ const getQuestions = async (
   }
 };
 
-/**
- * POST /api/quiz/attempt
- * Body: { question_id: uuid, selected_answer: "a"|"b"|"c"|"d" }
- *
- * Records the attempt and returns the result including the correct answer.
- */
 const submitAttempt = async (
   req: Request,
   res: Response,
@@ -77,10 +66,6 @@ const submitAttempt = async (
   }
 };
 
-/**
- * GET /api/quiz/stats
- * Returns the authenticated user's overall quiz statistics.
- */
 const getStats = async (
   req: Request,
   res: Response,
@@ -95,10 +80,6 @@ const getStats = async (
   }
 };
 
-/**
- * GET /api/quiz/history
- * Returns the authenticated user's full attempt history, newest first.
- */
 const getHistory = async (
   req: Request,
   res: Response,

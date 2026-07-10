@@ -8,7 +8,6 @@ import type {
   QuizStatsResponse,
 } from "./quiz.interface.js";
 
-// ─── Valid role categories ─────────────────────────────────────
 const VALID_ROLES = [
   "backend",
   "frontend",
@@ -17,12 +16,7 @@ const VALID_ROLES = [
   "data-science",
 ] as const;
 
-// ─── Helpers ───────────────────────────────────────────────────
 
-/**
- * Strips the correct_answer from the returned question object so the
- * client cannot see the answer in the GET response.
- */
 const stripAnswer = (q: {
   id: string;
   role_category: string;
@@ -37,15 +31,7 @@ const stripAnswer = (q: {
   difficulty: q.difficulty as QuizQuestionResponse["difficulty"],
 });
 
-// ─── Service functions ─────────────────────────────────────────
 
-/**
- * Fetches a list of quiz questions optionally filtered by role_category
- * and/or difficulty. Results are randomised via ORDER BY RANDOM() so
- * each call returns a different selection. Correct answers are stripped.
- *
- * Limit is capped at 50 to prevent abuse.
- */
 const getQuestionsFromDB = async (
   params: QuizQueryParams,
 ): Promise<QuizQuestionResponse[]> => {
@@ -108,14 +94,6 @@ const getQuestionsFromDB = async (
   return shuffled.slice(0, safeLimit).map(stripAnswer);
 };
 
-/**
- * Records a user's answer for a quiz question, determines correctness,
- * and returns full result including the correct answer (revealed after
- * submission).
- *
- * A user CAN re-attempt the same question — each attempt is a separate
- * record in quiz_attempts. This allows progress tracking over time.
- */
 const submitAttemptToDB = async (
   userId: string,
   payload: SubmitAttemptPayload,
@@ -160,11 +138,6 @@ const submitAttemptToDB = async (
   };
 };
 
-/**
- * Returns aggregate statistics for a user's quiz attempts.
- * Used by the frontend to show performance dashboards and by the
- * Readiness Score module for the interview component.
- */
 const getStatsFromDB = async (userId: string): Promise<QuizStatsResponse> => {
   const attempts = await prisma.quizAttempts.findMany({
     where: { user_id: userId },
@@ -205,10 +178,6 @@ const getStatsFromDB = async (userId: string): Promise<QuizStatsResponse> => {
   };
 };
 
-/**
- * Returns the full attempt history for a user, newest first.
- * Includes question text for context.
- */
 const getAttemptHistoryFromDB = async (userId: string) => {
   const attempts = await prisma.quizAttempts.findMany({
     where: { user_id: userId },

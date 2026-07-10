@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// ─── Request payload types ────────────────────────────────────
 
 export interface QuizQueryParams {
   role_category?: string;
@@ -13,7 +12,6 @@ export interface SubmitAttemptPayload {
   selected_answer: "a" | "b" | "c" | "d";
 }
 
-// ─── Zod validation schemas ───────────────────────────────────
 
 export const submitAttemptSchema = z.object({
   question_id: z.string().uuid("question_id must be a valid UUID"),
@@ -23,7 +21,6 @@ export const submitAttemptSchema = z.object({
   ),
 });
 
-// ─── Response shape types ─────────────────────────────────────
 
 export interface QuizQuestionResponse {
   id: string;
@@ -36,7 +33,6 @@ export interface QuizQuestionResponse {
     d: string;
   };
   difficulty: "easy" | "medium" | "hard";
-  // NOTE: correct_answer is intentionally OMITTED from response
 }
 
 export interface AttemptResult {
