@@ -2643,6 +2643,52 @@ const dataScienceQuestions: Question[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+// BEHAVIORAL QUESTIONS
+// ─────────────────────────────────────────────────────────────
+
+const behavioralQuestionsData: { question_text: string; category: string }[] = [
+  // Teamwork
+  { question_text: "Tell me about a time you had to work with a difficult team member. How did you handle it?", category: "teamwork" },
+  { question_text: "Describe a situation where you had to collaborate with cross-functional teams to achieve a goal.", category: "teamwork" },
+  { question_text: "Give an example of a time you helped a struggling teammate succeed.", category: "teamwork" },
+  { question_text: "Tell me about a time you had a disagreement with a colleague. How did you resolve it?", category: "teamwork" },
+  { question_text: "Describe a situation where you took the lead on a team project that was falling behind.", category: "teamwork" },
+  { question_text: "Tell me about a time you received difficult feedback from a peer. How did you respond?", category: "teamwork" },
+
+  // Leadership
+  { question_text: "Describe a time you took initiative on a project without being asked.", category: "leadership" },
+  { question_text: "Tell me about a time you mentored or onboarded a new team member.", category: "leadership" },
+  { question_text: "Give an example of a time you made a difficult decision that was unpopular with the team.", category: "leadership" },
+  { question_text: "Describe a situation where you had to motivate a team through a challenging period.", category: "leadership" },
+  { question_text: "Tell me about a time you delegated tasks effectively to meet a tight deadline.", category: "leadership" },
+  { question_text: "Give an example of how you handled a situation where a team member was underperforming.", category: "leadership" },
+
+  // Conflict Resolution
+  { question_text: "Tell me about a time you had to mediate a conflict between two colleagues.", category: "conflict-resolution" },
+  { question_text: "Describe a situation where a project requirement changed unexpectedly. How did you adapt?", category: "conflict-resolution" },
+  { question_text: "Give an example of a time you had to push back against a stakeholder's unrealistic request.", category: "conflict-resolution" },
+  { question_text: "Tell me about a time you made a mistake at work. How did you handle it?", category: "conflict-resolution" },
+  { question_text: "Describe a situation where you had to work under a tight deadline with limited resources.", category: "conflict-resolution" },
+  { question_text: "Give an example of how you handled a situation where priorities shifted mid-project.", category: "conflict-resolution" },
+
+  // Communication
+  { question_text: "Describe a time you had to explain a complex technical concept to a non-technical audience.", category: "communication" },
+  { question_text: "Tell me about a time your written communication skills made a difference in a project.", category: "communication" },
+  { question_text: "Give an example of a time you had to deliver bad news to a client or manager.", category: "communication" },
+  { question_text: "Describe a situation where you had to present your work to senior leadership.", category: "communication" },
+  { question_text: "Tell me about a time you used data to persuade a team to adopt your approach.", category: "communication" },
+  { question_text: "Give an example of how you ensured clear communication in a remote or distributed team.", category: "communication" },
+
+  // Problem Solving
+  { question_text: "Describe a complex technical problem you solved. Walk me through your approach.", category: "problem-solving" },
+  { question_text: "Tell me about a time you identified a process inefficiency and improved it.", category: "problem-solving" },
+  { question_text: "Give an example of a time you had to learn a new technology quickly to complete a task.", category: "problem-solving" },
+  { question_text: "Describe a situation where your initial solution failed. How did you pivot?", category: "problem-solving" },
+  { question_text: "Tell me about a time you automated a repetitive task to save time for the team.", category: "problem-solving" },
+  { question_text: "Give an example of how you troubleshooted a production issue under pressure.", category: "problem-solving" },
+];
+
+// ─────────────────────────────────────────────────────────────
 // SEED FUNCTION
 // ─────────────────────────────────────────────────────────────
 
@@ -2675,7 +2721,25 @@ async function main() {
     data: allQuestions,
   });
 
-  console.log(`\n✅  Done! Inserted ${result.count} questions successfully.\n`);
+  console.log(`\n✅  Done! Inserted ${result.count} quiz questions successfully.\n`);
+
+  // ─── Seed behavioral questions ────────────────────────────
+  console.log(`🌱  Starting behavioral question seed...`);
+  console.log(`   Total questions to seed: ${behavioralQuestionsData.length}\n`);
+
+  const bCategories = [...new Set(behavioralQuestionsData.map((q) => q.category))];
+  for (const cat of bCategories) {
+    const count = behavioralQuestionsData.filter((q) => q.category === cat).length;
+    console.log(`   [${cat}] ${count} questions`);
+  }
+
+  console.log(`\n📝  Inserting into database...`);
+
+  const bResult = await prisma.behavioralQuestions.createMany({
+    data: behavioralQuestionsData,
+  });
+
+  console.log(`\n✅  Done! Inserted ${bResult.count} behavioral questions successfully.\n`);
 }
 
 main()
