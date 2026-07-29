@@ -27,13 +27,10 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1, 'CLOUDINARY_API_KEY is required'),
   CLOUDINARY_API_SECRET: z.string().min(1, 'CLOUDINARY_API_SECRET is required'),
 
-  // SSLCommerz
-  SSLCOMMERZ_STORE_ID: z.string().min(1, 'SSLCOMMERZ_STORE_ID is required'),
-  SSLCOMMERZ_STORE_PASS: z.string().min(1, 'SSLCOMMERZ_STORE_PASS is required'),
-  SSLCOMMERZ_IS_LIVE: z
-    .string()
-    .transform((val) => val === 'true')
-    .default(false),
+  // Stripe
+  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
+  STRIPE_PRICE_ID: z.string().min(1, 'STRIPE_PRICE_ID is required'),
 
   // Judge0
   JUDGE0_BASE_URL: z.string().url('JUDGE0_BASE_URL must be a valid URL'),
@@ -41,6 +38,7 @@ const envSchema = z.object({
   // Email
   SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
   SMTP_PASS: z.string().min(1, 'SMTP_PASS is required'),
+
 
   // Frontend
   FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),

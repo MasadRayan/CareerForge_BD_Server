@@ -826,28 +826,28 @@ Persist result to `ReadinessScores` on each calculation.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/payments/init` | Token | Initiate SSLCommerz sandbox session |
-| POST | `/api/payments/webhook` | **None (public)** | SSLCommerz IPN callback handler |
+| POST | `/api/payments/init` | Token | Create Stripe Checkout Session |
+| POST | `/api/payments/webhook` | **None (public)** | Stripe webhook event handler |
 | GET | `/api/payments/history` | Token | User's own transaction history |
 
-**SSLCommerz Flow:**
+**Stripe Flow:**
 ```
 1. POST /api/payments/init
    → Create pending Transaction record
-   → Call SSLCommerz API to get GatewayPageURL
-   → Return { gateway_url } to frontend (frontend redirects user)
+   → Create Stripe Checkout Session (fixed price from STRIPE_PRICE_ID)
+   → Return { session_url } to frontend (frontend redirects user)
 
-2. User pays on SSLCommerz's hosted page
+2. User pays on Stripe's hosted page
 
-3. SSLCommerz sends IPN (Instant Payment Notification) to POST /api/payments/webhook
-   → Validate IPN signature
-   → Update Transaction status → 'success' or 'failed'
-   → If success: upsert Subscription (status: active, set expires_at)
+3. Stripe sends checkout.session.completed to POST /api/payments/webhook
+   → Validate Stripe webhook signature
+   → Update Transaction status → 'success'
+   → Create Subscription (status: active, plan: premium, expires_at: 30 days)
    → Update user role to 'premium_user'
    → Send email receipt via email.service.ts
 ```
 
-**Security:** The webhook endpoint must **not** require Firebase auth (called by SSLCommerz server), but must **validate the SSLCommerz IPN hash** to prevent spoofing.
+**Security:** The webhook endpoint must **not** require Firebase auth (called by Stripe), but must **validate the Stripe webhook signature** using `STRIPE_WEBHOOK_SECRET` to prevent spoofing.
 
 ---
 
@@ -1088,13 +1088,13 @@ POST   /api/admin/maintenance              → Trigger admin maintenance task
 **Goal:** Behavioral interview, quiz, and readiness score.
 
 - [x] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
-- [ ] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
-- [ ] Seed `BehavioralQuestions` table
+- [x] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
+- [x] Seed `BehavioralQuestions` table
 - [x] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
-- [ ] Setup **Notifications module**: Nodemailer + Gmail SMTP
-- [ ] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
-- [ ] Create email HTML templates
-- [ ] Implement `streakReset.job.ts` (node-cron daily midnight)
+- [x] Setup **Notifications module**: Nodemailer + Gmail SMTP
+- [x] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
+- [x] Create email HTML templates
+- [x] Implement `streakReset.job.ts` (node-cron daily midnight)
 - [ ] Write integration tests for interview endpoints
 
 > **Coding/Judge0 module skipped** — no free code execution service available. Revisit if a free option emerges.
@@ -1105,11 +1105,11 @@ POST   /api/admin/maintenance              → Trigger admin maintenance task
 
 **Goal:** Payments working, admin dashboard complete, test coverage at 70%+, Swagger docs finalized.
 
-- [ ] Setup `config/sslcommerz.ts` — SSLCommerz SDK config
-- [ ] Build **Payments module**: `POST /payments/init` (create session, pending tx)
-- [ ] Build `POST /payments/webhook` (IPN validation, upgrade user, send receipt)
+- [ ] Setup `config/stripe.ts` — Stripe SDK config
+- [ ] Build **Payments module**: `POST /payments/init` (create Checkout Session, pending tx)
+- [ ] Build `POST /payments/webhook` (signature validation, fulfill order, send receipt)
 - [ ] Build `GET /payments/history`
-- [ ] Implement `subscriptionExpiry.job.ts` (daily cron — expire subs + downgrade roles + emails)
+- [x] Implement `subscriptionExpiry.job.ts` (daily cron — expire subs + downgrade roles + emails)
 - [ ] Build **Admin module**: all 7 admin endpoints
 - [ ] Implement analytics calculation (MRR, conversion rate, churn)
 - [ ] Finalize `rbac.middleware.ts` across all admin routes
@@ -1143,10 +1143,10 @@ GEMINI_API_KEY=your_gemini_api_key
 # Judge0 (self-hosted)
 JUDGE0_URL=http://your_oracle_vm_ip:2358
 
-# SSLCommerz (sandbox)
-SSLCOMMERZ_STORE_ID=your_store_id
-SSLCOMMERZ_STORE_PASSWORD=your_store_password
-SSLCOMMERZ_IS_LIVE=false
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_abc123
 
 # Email (Gmail SMTP)
 GMAIL_USER=your_gmail@gmail.com
