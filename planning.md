@@ -1088,9 +1088,9 @@ POST   /api/admin/maintenance              → Trigger admin maintenance task
 **Goal:** Behavioral interview, quiz, and readiness score.
 
 - [x] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
-- [x] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
-- [x] Seed `BehavioralQuestions` table
-- [ ] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
+- [ ] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
+- [ ] Seed `BehavioralQuestions` table
+- [x] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
 - [ ] Setup **Notifications module**: Nodemailer + Gmail SMTP
 - [ ] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
 - [ ] Create email HTML templates
