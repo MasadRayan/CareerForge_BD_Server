@@ -1085,22 +1085,19 @@ POST   /api/admin/maintenance              → Trigger admin maintenance task
 
 ### 🎯 Sprint 3 — Interview Preparation Module (Weeks 5–6)
 
-**Goal:** Full interview suite working — quiz, coding, behavioral, readiness score.
+**Goal:** Behavioral interview, quiz, and readiness score.
 
-- [ ] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
-- [ ] Setup **Judge0** on Oracle Cloud VM (Docker)
-- [ ] Implement `judge0.service.ts` — submission flow + polling
-- [ ] Build **Coding module**: `GET /coding-problems`, `POST /coding-problems/:id/submit`
-- [ ] Seed `CodingProblems` table with initial problem set
-- [ ] Write behavioral feedback Gemini prompt
-- [ ] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
-- [ ] Seed `BehavioralQuestions` table
+- [x] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
+- [x] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
+- [x] Seed `BehavioralQuestions` table
 - [ ] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
 - [ ] Setup **Notifications module**: Nodemailer + Gmail SMTP
 - [ ] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
 - [ ] Create email HTML templates
 - [ ] Implement `streakReset.job.ts` (node-cron daily midnight)
 - [ ] Write integration tests for interview endpoints
+
+> **Coding/Judge0 module skipped** — no free code execution service available. Revisit if a free option emerges.
 
 ---
 
