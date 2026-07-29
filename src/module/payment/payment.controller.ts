@@ -33,8 +33,19 @@ const getSubscriptionStatus = async (req: Request, res: Response, next: NextFunc
   }
 }
 
+const getPaymentHistory = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id
+    const result = await subscriptionService.getPaymentHistory(userId)
+    sendResponse(res, 200, true, 'Payment history retrieved successfully', result)
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const subscriptionController = {
   createCheckOutSession,
   webhookController,
   getSubscriptionStatus,
+  getPaymentHistory,
 }

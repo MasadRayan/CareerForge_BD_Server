@@ -7,5 +7,6 @@ const router = Router()
 router.post('/checkout',  subscriptionController.createCheckOutSession)
 router.post('/webhook', subscriptionController.webhookController)
 router.get('/status', verifyFBToken, subscriptionController.getSubscriptionStatus)
+router.get('/history', verifyFBToken, subscriptionController.getPaymentHistory)
 
 export const subscriptionRouter = router
