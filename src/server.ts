@@ -2,6 +2,7 @@ import http from 'http'
 import app from './app.js'
 import env from './config/env.js'
 import { prisma } from './lib/prisma.js'
+import { startScheduler } from './jobs/scheduler.js'
 
 const PORT = env.PORT
 
@@ -50,6 +51,7 @@ function gracefulShutdown(signal: string, exitCode: number = 0): void {
 async function startServer(): Promise<void> {
   try {
     await assertDatabaseConnection()
+    startScheduler()
 
     server.listen(PORT, () => {
       serverListening = true

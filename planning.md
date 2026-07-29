@@ -1088,13 +1088,13 @@ POST   /api/admin/maintenance              → Trigger admin maintenance task
 **Goal:** Behavioral interview, quiz, and readiness score.
 
 - [x] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
-- [ ] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
-- [ ] Seed `BehavioralQuestions` table
+- [x] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
+- [x] Seed `BehavioralQuestions` table
 - [x] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
-- [ ] Setup **Notifications module**: Nodemailer + Gmail SMTP
-- [ ] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
-- [ ] Create email HTML templates
-- [ ] Implement `streakReset.job.ts` (node-cron daily midnight)
+- [x] Setup **Notifications module**: Nodemailer + Gmail SMTP
+- [x] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
+- [x] Create email HTML templates
+- [x] Implement `streakReset.job.ts` (node-cron daily midnight)
 - [ ] Write integration tests for interview endpoints
 
 > **Coding/Judge0 module skipped** — no free code execution service available. Revisit if a free option emerges.
@@ -1109,7 +1109,7 @@ POST   /api/admin/maintenance              → Trigger admin maintenance task
 - [ ] Build **Payments module**: `POST /payments/init` (create session, pending tx)
 - [ ] Build `POST /payments/webhook` (IPN validation, upgrade user, send receipt)
 - [ ] Build `GET /payments/history`
-- [ ] Implement `subscriptionExpiry.job.ts` (daily cron — expire subs + downgrade roles + emails)
+- [x] Implement `subscriptionExpiry.job.ts` (daily cron — expire subs + downgrade roles + emails)
 - [ ] Build **Admin module**: all 7 admin endpoints
 - [ ] Implement analytics calculation (MRR, conversion rate, churn)
 - [ ] Finalize `rbac.middleware.ts` across all admin routes
