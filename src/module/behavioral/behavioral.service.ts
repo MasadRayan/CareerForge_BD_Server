@@ -4,6 +4,7 @@ import AppError from "../../utils/AppError.js";
 import { groqChatCompletion } from "../../config/groq.js";
 import { behavioralFeedbackPrompt } from "./behavioral.prompts.js";
 import type { SubmitAnswerPayload, BehavioralFeedback, SubmitAnswerResult } from "./behavioral.interface.js";
+import { th } from "zod/v4/locales/index.js";
 
 const feedbackSchema = z.object({
   structure_score: z.number().int().min(0).max(10),
@@ -16,10 +17,17 @@ const feedbackSchema = z.object({
 const extractJsonObject = (raw: string): unknown => {
   const cleaned = raw.trim();
 
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // fall through
+  const tryParseJson = (value: string): unknown | null => {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  };
+
+  const direct = tryParseJson(cleaned);
+  if (direct !== null) {
+    return direct;
   }
 
   const fenced = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -27,7 +35,7 @@ const extractJsonObject = (raw: string): unknown => {
     try {
       return JSON.parse(fenced[1].trim());
     } catch {
-      // fall through
+      throw new AppError("AI returned a non-JSON response", 502);
     }
   }
 
