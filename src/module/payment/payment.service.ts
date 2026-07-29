@@ -95,26 +95,19 @@ const getSubscriptionStatus = async (userId: string) => {
 }
 
 const getPaymentHistory = async (userId: string) => {
-  const transactions = await prisma.transactions.findMany({
+  const subscriptions = await prisma.subscriptions.findMany({
     where: { user_id: userId },
     orderBy: { created_at: 'desc' },
-    include: {
-      subscription: {
-        select: { plan: true, status: true },
-      },
-    },
   })
 
-  return transactions.map((tx) => ({
-    id: tx.id,
-    amount: tx.amount,
-    currency: tx.currency,
-    gateway: tx.gateway,
-    gatewayTransactionId: tx.gateway_transaction_id,
-    status: tx.status,
-    plan: tx.subscription.plan,
-    subscriptionStatus: tx.subscription.status,
-    createdAt: tx.created_at,
+  return subscriptions.map((sub) => ({
+    id: sub.id,
+    plan: sub.plan,
+    status: sub.status,
+    startedAt: sub.started_at,
+    currentPeriodEnd: sub.currentPeriodEnd,
+    stripeSubscriptionId: sub.stripeSubscriptionId,
+    createdAt: sub.created_at,
   }))
 }
 
