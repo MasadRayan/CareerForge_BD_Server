@@ -5,3 +5,5 @@ prisma/migrations
 /generated/prisma
 careerforge_admin.json
 .vscode
+dist
+AGENTS.md

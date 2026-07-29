@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
 import { groqChatCompletion } from "../../config/groq.js";
 import { atsAnalysisPrompt } from "./analysis.prompts.js";
+import { prepareCV, prepareJD } from "../../utils/tokenUtils.js";
 import type {
   CreateAnalysisPayload,
   GeminiAtsResponse,
@@ -199,7 +200,7 @@ const createAnalysisInDB = async (
     }
   }
 
-  const aiResult = await callGroqForAts(cv.raw_text, jd.raw_text);
+  const aiResult = await callGroqForAts(prepareCV(cv.raw_text), prepareJD(jd.raw_text));
 
   const analysis = await prisma.analyses.create({
     data: {

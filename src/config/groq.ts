@@ -1,31 +1,18 @@
 import Groq from "groq-sdk";
 import env from "./env.js";
 
-/**
- * Groq SDK singleton + reusable chat helpers.
- *
- * The Groq API is OpenAI-compatible (`chat.completions.create`), so
- * downstream modules can swap in/out without touching the SDK surface.
- *
- * Default model is `openai/gpt-oss-20b` (free tier, large context,
- * reliable structured JSON output). Override per-call by passing
- * `model` to `groqChatCompletion`.
- */
-
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
-export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b";
+// llama-3.1-8b-instant: fastest free-tier model on Groq, ~14 400 req/day.
+// If you hit limits, fall back to "gemma2-9b-it" (also free, slightly slower).
+export const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
 
 export type GroqChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
 
-/**
- * Runs a chat completion against Groq and returns the assistant message
- * content as a string. Throws the raw SDK error on transport/API failure
- * so callers can wrap it with their own logging.
- */
+
 export const groqChatCompletion = async (
   messages: GroqChatMessage[],
   options: {
@@ -48,10 +35,7 @@ export const groqChatCompletion = async (
   return content;
 };
 
-/**
- * Convenience wrapper kept for any callers that want the default
- * "explain fast language models" probe. Not used by app code.
- */
+
 export async function getGroqChatCompletion() {
   return groqChatCompletion([
     {
