@@ -13,7 +13,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "test": "jest --runInBand",
-    "stripe:webhook": "stripe listen --forward-to localhost:8000/api/subscription/webhook",
+    "stripe:webhook": "stripe listen --forward-to localhost:3000/api/subscription/webhook",
     "test:coverage": "jest --coverage --coverageReporters=text"
   },
   "keywords": [],
@@ -40,6 +40,7 @@
     "pdf-parse": "^2.4.5",
     "pg": "^8.22.0",
     "sslcommerz-lts": "^1.2.0",
+    "stripe": "^22.3.2",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",

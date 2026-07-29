@@ -11,14 +11,14 @@ export const subscriptionExpiryJob = async (): Promise<void> => {
 
   // ─── Expire subscriptions that have passed ─────────────────
   const expired = await prisma.subscriptions.updateMany({
-    where: { status: "active", expires_at: { lt: todayStart } },
+    where: { status: "active", currentPeriodEnd: { lt: todayStart } },
     data: { status: "expired" },
   });
 
   if (expired.count > 0) {
     // Downgrade expired users to free_user
     const expiredSubs = await prisma.subscriptions.findMany({
-      where: { status: "expired", expires_at: { lt: todayStart } },
+      where: { status: "expired", currentPeriodEnd: { lt: todayStart } },
       select: { user_id: true },
     });
     const expiredUserIds = [...new Set(expiredSubs.map((s) => s.user_id))];
@@ -36,7 +36,7 @@ export const subscriptionExpiryJob = async (): Promise<void> => {
   const expiringIn7Days = await prisma.subscriptions.findMany({
     where: {
       status: "active",
-      expires_at: { gte: in7Days, lt: new Date(in7Days.getTime() + 86400000) },
+      currentPeriodEnd: { gte: in7Days, lt: new Date(in7Days.getTime() + 86400000) },
     },
     select: { user_id: true },
   });
@@ -53,7 +53,7 @@ export const subscriptionExpiryJob = async (): Promise<void> => {
   const expiringIn1Day = await prisma.subscriptions.findMany({
     where: {
       status: "active",
-      expires_at: { gte: in1Day, lt: new Date(in1Day.getTime() + 86400000) },
+      currentPeriodEnd: { gte: in1Day, lt: new Date(in1Day.getTime() + 86400000) },
     },
     select: { user_id: true },
   });
