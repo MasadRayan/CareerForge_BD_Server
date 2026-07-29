@@ -19,7 +19,7 @@ import limiter from './middleware/ratelimit.js';
 
 const app: Application = express()
 
-app.use(helmet())
+app.use(helmet({ crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" } }))
 app.use(
   cors({
     origin: env.FRONTEND_URL,
