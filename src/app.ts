@@ -26,6 +26,9 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 )
+
+app.post("/api/subscription/webhook", express.raw({ type: "application/json" }))
+
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true, limit: '10kb' }))
 app.use('/api',limiter)
@@ -47,6 +50,7 @@ app.use("/api/quiz", quizRouter)
 app.use("/api/behavioral-questions", behavioralRouter)
 app.use("/api/readiness-score", readinessRouter)
 app.use("/api/notifications", notificationRouter)
+app.use("/api/subscription", );
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

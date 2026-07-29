@@ -13,6 +13,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "test": "jest --runInBand",
+    "stripe:webhook": "stripe listen --forward-to localhost:8000/api/subscription/webhook",
     "test:coverage": "jest --coverage --coverageReporters=text"
   },
   "keywords": [],
