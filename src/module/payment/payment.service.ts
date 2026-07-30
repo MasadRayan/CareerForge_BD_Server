@@ -45,8 +45,8 @@ const createCheckOutSession = async (userId: string) => {
       mode: 'subscription',
       customer: stripeCustomerId,
       payment_method_types: ['card'],
-      success_url: `${env.FRONTEND_URL}/premium?success`,
-      cancel_url: `${env.FRONTEND_URL}/payment?cancel`,
+      success_url: `${env.FRONTEND_URL}/dashboard/subscription?success`,
+      cancel_url: `${env.FRONTEND_URL}/dashboard/subscription?cancel`,
       metadata: { userId: user.id },
     })
 
