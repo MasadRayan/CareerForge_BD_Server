@@ -87,6 +87,7 @@ describe("POST /api/analysis", () => {
     mockPrisma.usageQuotas.findUnique.mockResolvedValue(null);
     groqChatCompletion.mockResolvedValue(mockGroqResponse);
     mockPrisma.usageQuotas.create.mockResolvedValue({ analyses_used_this_month: 0, reset_date: new Date(), user_id: "user-1" });
+    mockPrisma.usageQuotas.update.mockResolvedValue({ analyses_used_this_month: 1, reset_date: new Date(), user_id: "user-1" });
     mockPrisma.analyses.create.mockResolvedValue(mockAnalysis);
 
     const res = await request(app)
