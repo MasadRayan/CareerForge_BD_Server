@@ -39,7 +39,7 @@ OUTPUT SCHEMA (strict JSON — no commentary, no markdown fences):
 RULES:
 - Output EXACTLY ${endWeek - startWeek + 1} week(s) (week_number from ${startWeek} to ${endWeek}).
 - Each week: exactly 2 resources, exactly 5 daily_tasks.
-- Resources must use real, publicly accessible URLs.
+- CRITICAL: Never invent or guess URLs. Only use URLs you are certain are real and publicly accessible. Every URL will be checked.
 
 SKILL GAPS: ${JSON.stringify(skills)}
 
@@ -80,7 +80,7 @@ GUIDELINES:
 - Generate EXACTLY ${durationWeeks} weeks.
 - Each week: exactly 2 resources, exactly 5 daily_tasks.
 - Order weeks from foundational concepts to advanced application.
-- URLs must be real and publicly accessible.
+- CRITICAL: Never invent or guess URLs. Only use URLs you are certain are real and publicly accessible. Every URL will be checked.
 
 SKILL GAPS TO ADDRESS: ${JSON.stringify(skills)}
 
