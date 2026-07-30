@@ -3,6 +3,9 @@ export default {
   testEnvironment: "node",
   roots: ["<rootDir>/tests"],
   setupFiles: ["<rootDir>/tests/setup.ts"],
+  collectCoverage: true,
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "html", "lcov", "json-summary", "text-summary"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
