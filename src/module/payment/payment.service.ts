@@ -94,8 +94,26 @@ const getSubscriptionStatus = async (userId: string) => {
   }
 }
 
+const getPaymentHistory = async (userId: string) => {
+  const subscriptions = await prisma.subscriptions.findMany({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' },
+  })
+
+  return subscriptions.map((sub) => ({
+    id: sub.id,
+    plan: sub.plan,
+    status: sub.status,
+    startedAt: sub.started_at,
+    currentPeriodEnd: sub.currentPeriodEnd,
+    stripeSubscriptionId: sub.stripeSubscriptionId,
+    createdAt: sub.created_at,
+  }))
+}
+
 export const subscriptionService = {
   createCheckOutSession,
   webhookService,
   getSubscriptionStatus,
+  getPaymentHistory,
 }

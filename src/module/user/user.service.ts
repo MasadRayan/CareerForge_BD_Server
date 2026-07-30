@@ -13,7 +13,7 @@ const registerUserIntoDB = async (payload: CreateUserInterFace) => {
   });
 
   if (isUserExists) {
-    throw new AppError("User already exists", 400);
+    return isUserExists;
   }
 
   const user = await prisma.users.create({

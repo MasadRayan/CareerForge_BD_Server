@@ -22,6 +22,7 @@ export const verifyAdmin = async (
 
   if (user?.role !== "admin") {
     sendResponse(res, 401, false, "Unauthorized Access");
+    return;
   }
-  return next();
+  next();
 };
