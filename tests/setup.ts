@@ -1,0 +1,23 @@
+jest.mock("../src/config/env.js", () => ({
+  default: {
+    PORT: "0",
+    NODE_ENV: "test",
+    DATABASE_URL: "postgresql://test:test@localhost:5432/test",
+    FIREBASE_PROJECT_ID: "test-project",
+    FIREBASE_CLIENT_EMAIL: "test@test.com",
+    FIREBASE_PRIVATE_KEY: "test-key",
+    GEMINI_API_KEY: "test-gemini-key",
+    CLOUDINARY_CLOUD_NAME: "test",
+    CLOUDINARY_API_KEY: "test",
+    CLOUDINARY_API_SECRET: "test",
+    STRIPE_SECRET_KEY: "sk_test_xxx",
+    STRIPE_WEBHOOK_SECRET: "whsec_xxx",
+    STRIPE_PRICE_ID: "price_xxx",
+    JUDGE0_BASE_URL: "http://localhost:2358",
+    SMTP_USER: "test@test.com",
+    SMTP_PASS: "test-pass",
+    FRONTEND_URL: "http://localhost:5173",
+    GROQ_API_KEY: "test-groq-key",
+    GROQ_API_KEY_2: "test-groq-key-2",
+  },
+}));
