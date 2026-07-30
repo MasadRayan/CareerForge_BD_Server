@@ -1,6 +1,8 @@
 import { prisma } from "../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
 import { groqChatCompletion } from "../../config/groq.js";
+import { verifyResources } from "../../lib/urlValidator.js";
+import { getFallbackUrl } from "../../lib/searchFallback.js";
 import { roadmapPrompt, roadmapBatchPrompt } from "./roadmap.prompt.js";
 import {
   roadmapResponseSchema,
@@ -41,6 +43,42 @@ const extractJsonObject = (raw: string): unknown => {
   }
 
   throw new AppError("AI returned a non-JSON response", 502);
+};
+
+
+const applyResourceFallbacks = async (
+  response: GroqRoadmapResponse,
+): Promise<GroqRoadmapResponse> => {
+  const allResources = response.weeks.flatMap((w) => w.resources);
+  if (allResources.length === 0) return response;
+
+  const { invalid } = await verifyResources(allResources);
+  if (invalid.length === 0) return response;
+
+  const invalidUrls = new Set(invalid.map((r) => r.url));
+
+  for (const week of response.weeks) {
+    for (const res of week.resources) {
+      if (invalidUrls.has(res.url)) {
+        res.url = getFallbackUrl(res.title, res.type);
+      }
+    }
+  }
+
+  await prisma.systemLogs
+    .create({
+      data: {
+        type: "error",
+        message: `Roadmap: ${invalid.length}/${allResources.length} resources had dead URLs, replaced with search fallbacks`,
+        metadata: {
+          stage: "roadmap.urlVerification",
+          invalid: invalid.map((r) => ({ title: r.title, originalUrl: r.url })),
+        },
+      },
+    })
+    .catch(() => {});
+
+  return response;
 };
 
 
@@ -128,7 +166,7 @@ const callGroqSingleBatch = async (
     );
   }
 
-  return validated.data;
+  return await applyResourceFallbacks(validated.data);
 };
 
 
