@@ -1,2 +1,0 @@
-export declare const uploadCV: import("express").RequestHandler<import("express-serve-static-core").ParamsDictionary, any, any, import("qs").ParsedQs, Record<string, any>>;
-//# sourceMappingURL=cv.upload.d.ts.map
