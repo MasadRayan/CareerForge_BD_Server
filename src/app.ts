@@ -1,27 +1,25 @@
 import express, { Application, Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import { rateLimit } from 'express-rate-limit'
 import env from './config/env.js'
+import { userRouter } from './module/user/user.route.js';
+import { jobDescriptionRouter } from './module/jobDescription/jobDescription.route.js';
+import { cvRouter } from './module/cv/cv.route.js';
+import { analysisRouter } from './module/analysis/analysis.route.js';
+import { roadmapRouter } from './module/roadmap/roadmap.route.js';
+import { quizRouter } from './module/quiz/quiz.route.js';
+import { behavioralRouter } from './module/behavioral/behavioral.route.js';
+import { readinessRouter } from './module/readiness/readiness.route.js';
+import { notificationRouter } from './module/notification/notification.route.js';
+import { subscriptionRouter } from './module/payment/payment.route.js';
+import { analyticsRouter } from './module/analytics/analytics.route.js';
+import globalHandler from './middleware/globalErrorHandler.js';
+import limiter from './middleware/ratelimit.js';
 
-// ─── Route Imports (uncomment as each module is built) ───────
-// import authRoutes from './modules/users/users.routes.js'
-// import cvRoutes from './modules/cv/cv.routes.js'
-// import jdRoutes from './modules/jobDescriptions/jobDescriptions.routes.js'
-// import analysisRoutes from './modules/analysis/analysis.routes.js'
-// import roadmapRoutes from './modules/roadmap/roadmap.routes.js'
-// import quizRoutes from './modules/quiz/quiz.routes.js'
-// import codingRoutes from './modules/coding/coding.routes.js'
-// import behavioralRoutes from './modules/behavioral/behavioral.routes.js'
-// import readinessRoutes from './modules/readiness/readiness.routes.js'
-// import paymentRoutes from './modules/payments/payments.routes.js'
-// import adminRoutes from './modules/admin/admin.routes.js'
 
 const app: Application = express()
 
-// ─── Security Middleware ──────────────────────────────────────
-app.use(helmet())
-
+app.use(helmet({ crossOriginOpenerPolicy: false }))
 app.use(
   cors({
     origin: env.FRONTEND_URL,
@@ -31,23 +29,11 @@ app.use(
   })
 )
 
+app.post("/api/subscription/webhook", express.raw({ type: "application/json" }))
+
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true, limit: '10kb' }))
-
-app.use(
-  '/api',
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-      success: false,
-      message: 'Too many requests, please try again later.',
-    },
-  })
-)
-
+app.use('/api',limiter)
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -57,35 +43,24 @@ app.get('/health', (_req: Request, res: Response) => {
   })
 })
 
-// ─── API Routes ───────────────────────────────────────────────
-// app.use('/api/auth', authRoutes)
-// app.use('/api/cv', cvRoutes)
-// app.use('/api/jd', jdRoutes)
-// app.use('/api/analysis', analysisRoutes)
-// app.use('/api/roadmap', roadmapRoutes)
-// app.use('/api/quiz', quizRoutes)
-// app.use('/api/coding-problems', codingRoutes)
-// app.use('/api/behavioral-questions', behavioralRoutes)
-// app.use('/api/readiness-score', readinessRoutes)
-// app.use('/api/payments', paymentRoutes)
-// app.use('/api/admin', adminRoutes)
+app.use("/api/users", userRouter)
+app.use("/api/jd", jobDescriptionRouter)
+app.use("/api/cv", cvRouter)
+app.use("/api/analysis", analysisRouter)
+app.use("/api/roadmap", roadmapRouter)
+app.use("/api/quiz", quizRouter)
+app.use("/api/behavioral-questions", behavioralRouter)
+app.use("/api/readiness-score", readinessRouter)
+app.use("/api/notifications", notificationRouter)
+app.use("/api/subscription", subscriptionRouter);
+app.use("/api/analytics", analyticsRouter);
 
-// ─── 404 Handler ──────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
   })
 })
-
-// ─── Global Error Handler ─────────────────────────────────────
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('❌ Unhandled error:', err)
-  res.status(500).json({
-    success: false,
-    message:
-      env.NODE_ENV === 'development' ? err.message : 'Internal server error',
-  })
-})
+app.use(globalHandler)
 
 export default app

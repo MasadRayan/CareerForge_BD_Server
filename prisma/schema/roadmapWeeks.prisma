@@ -1,12 +1,16 @@
 // ─── RoadmapWeeks ────────────────────────────────────────────
 // One week within a roadmap. Each week has its own topic summary,
-// resources, and daily tasks.
+// resources, and daily tasks. `start_date`/`end_date` anchor the week
+// to real calendar dates derived from the roadmap's start point, so the
+// "1st week / 2nd week" timeline carries concrete dates for the client.
 
 model RoadmapWeeks {
-  id            String @id @default(uuid())
+  id            String    @id @default(uuid())
   roadmap_id    String
   week_number   Int
   topic_summary String
+  start_date    DateTime?
+  end_date      DateTime?
 
   roadmap    Roadmaps     @relation(fields: [roadmap_id], references: [id], onDelete: Cascade)
   resources  Resources[]

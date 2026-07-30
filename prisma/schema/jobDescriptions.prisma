@@ -1,12 +1,15 @@
 // ─── JobDescriptions ─────────────────────────────────────────
 // A job posting the user wants to match their CV against.
+// `interview_date` anchors the roadmap timeline; optional because not
+// every JD has an interview scheduled yet.
 
 model JobDescriptions {
-  id         String   @id @default(uuid())
-  user_id    String
-  title      String
-  raw_text   String   @db.Text
-  created_at DateTime @default(now())
+  id            String    @id @default(uuid())
+  user_id       String
+  title         String
+  raw_text      String    @db.Text
+  interview_date DateTime?
+  created_at    DateTime  @default(now())
 
   user     Users      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   analyses Analyses[]

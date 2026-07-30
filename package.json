@@ -11,7 +11,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "prisma:seed": "tsx prisma/seed.ts",
     "test": "jest --runInBand",
+    "stripe:webhook": "stripe listen --forward-to localhost:3000/api/subscription/webhook",
     "test:coverage": "jest --coverage --coverageReporters=text"
   },
   "keywords": [],
@@ -22,19 +24,23 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "axios": "^1.18.1",
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "firebase-admin": "^14.0.0",
+    "groq-sdk": "^1.3.0",
     "helmet": "^8.2.0",
     "mammoth": "^1.12.0",
     "multer": "^2.2.0",
     "node-cron": "^4.5.0",
     "nodemailer": "^9.0.1",
+    "openai": "^6.45.0",
     "pdf-parse": "^2.4.5",
     "pg": "^8.22.0",
     "sslcommerz-lts": "^1.2.0",
+    "stripe": "^22.3.2",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",
@@ -58,5 +64,8 @@
     "ts-jest": "^29.2.0",
     "tsx": "^4.22.4",
     "typescript": "5.4.5"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

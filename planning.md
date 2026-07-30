@@ -826,28 +826,28 @@ Persist result to `ReadinessScores` on each calculation.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/payments/init` | Token | Initiate SSLCommerz sandbox session |
-| POST | `/api/payments/webhook` | **None (public)** | SSLCommerz IPN callback handler |
+| POST | `/api/payments/init` | Token | Create Stripe Checkout Session |
+| POST | `/api/payments/webhook` | **None (public)** | Stripe webhook event handler |
 | GET | `/api/payments/history` | Token | User's own transaction history |
 
-**SSLCommerz Flow:**
+**Stripe Flow:**
 ```
 1. POST /api/payments/init
    → Create pending Transaction record
-   → Call SSLCommerz API to get GatewayPageURL
-   → Return { gateway_url } to frontend (frontend redirects user)
+   → Create Stripe Checkout Session (fixed price from STRIPE_PRICE_ID)
+   → Return { session_url } to frontend (frontend redirects user)
 
-2. User pays on SSLCommerz's hosted page
+2. User pays on Stripe's hosted page
 
-3. SSLCommerz sends IPN (Instant Payment Notification) to POST /api/payments/webhook
-   → Validate IPN signature
-   → Update Transaction status → 'success' or 'failed'
-   → If success: upsert Subscription (status: active, set expires_at)
+3. Stripe sends checkout.session.completed to POST /api/payments/webhook
+   → Validate Stripe webhook signature
+   → Update Transaction status → 'success'
+   → Create Subscription (status: active, plan: premium, expires_at: 30 days)
    → Update user role to 'premium_user'
    → Send email receipt via email.service.ts
 ```
 
-**Security:** The webhook endpoint must **not** require Firebase auth (called by SSLCommerz server), but must **validate the SSLCommerz IPN hash** to prevent spoofing.
+**Security:** The webhook endpoint must **not** require Firebase auth (called by Stripe), but must **validate the Stripe webhook signature** using `STRIPE_WEBHOOK_SECRET` to prevent spoofing.
 
 ---
 
@@ -905,64 +905,114 @@ Churn          = (subscriptions with status='expired' this month) / (active subs
 
 ## 8. REST API Reference
 
-All endpoints prefixed with `/api`. All protected routes require `Authorization: Bearer <firebase_id_token>`.
+> All planned backend endpoints are listed below. Protected routes require `Authorization: Bearer <firebase_id_token>`, unless otherwise noted.
+
+### Public / System Endpoints
+```
+GET    /health                             → Health check for uptime/status
+GET    /api-docs                           → Swagger/OpenAPI UI
+POST   /api/payments/webhook               → SSLCommerz IPN callback (public)
+```
 
 ### Auth & Users
 ```
-POST   /api/auth/sync                      → Upsert user on first login
-GET    /api/users/me                       → Own profile
-PATCH  /api/users/me                       → Update profile
-DELETE /api/users/me                       → Delete account
+POST   /api/auth/sync                      → Upsert user on first Firebase login
+GET    /api/users/me                       → Fetch current user profile
+PATCH  /api/users/me                       → Update profile fields
+DELETE /api/users/me                       → Delete account and all associated user data
 ```
 
-### CV & Job Descriptions
+### CV Module
 ```
-POST   /api/cv                             → Upload CV (multipart)
-GET    /api/cv                             → List own CVs
-GET    /api/cv/:id                         → Get CV detail
-POST   /api/jd                             → Submit job description
-GET    /api/jd                             → List own JDs
-```
-
-### Analysis & Roadmap
-```
-POST   /api/analysis                       → Run ATS analysis [quota guarded]
-GET    /api/analysis                       → List own analyses
-GET    /api/analysis/:id                   → Get analysis detail
-POST   /api/roadmap                        → Generate roadmap
-GET    /api/roadmap/:id                    → Get roadmap + weeks + tasks
-PATCH  /api/roadmap/:id/tasks/:taskId      → Mark task complete
+POST   /api/cv                             → Upload CV file (PDF or DOCX)
+GET    /api/cv                             → List current user's CV versions
+GET    /api/cv/:id                         → Get CV metadata and parsed text summary
+DELETE /api/cv/:id                         → Delete a CV version
 ```
 
-### Interview
+### Job Descriptions Module
 ```
-GET    /api/quiz                           → Fetch quiz questions
-POST   /api/quiz/attempt                   → Submit quiz answer
-GET    /api/coding-problems                → List coding problems
-POST   /api/coding-problems/:id/submit     → Submit code to Judge0
-GET    /api/behavioral-questions           → Fetch behavioral questions
-POST   /api/behavioral-questions/:id/answer→ Submit answer, get Gemini feedback
-GET    /api/readiness-score                → Get composite readiness score
+POST   /api/jd                             → Submit a job description text
+GET    /api/jd                             → List current user's job descriptions
+GET    /api/jd/:id                         → Get job description details
+DELETE /api/jd/:id                         → Delete a job description
 ```
 
-### Payments
+### Analysis Module
 ```
-POST   /api/payments/init                  → Initiate SSLCommerz payment
-POST   /api/payments/webhook               → SSLCommerz IPN (public)
-GET    /api/payments/history               → Own transaction history
+POST   /api/analysis                       → Run ATS analysis for CV + JD [quota guarded]
+GET    /api/analysis                       → List current user's analyses
+GET    /api/analysis/:id                   → Get analysis details
+DELETE /api/analysis/:id                   → Delete an analysis record
+```
+
+### Roadmap Module
+```
+POST   /api/roadmap                        → Generate roadmap from analysis and duration
+GET    /api/roadmap                        → List current user's roadmaps
+GET    /api/roadmap/:id                    → Get roadmap with weeks, resources, and tasks
+PATCH  /api/roadmap/:id/tasks/:taskId      → Mark roadmap task complete
+PATCH  /api/roadmap/:id                   → Update roadmap status or metadata
+DELETE /api/roadmap/:id                   → Delete a roadmap
+```
+
+### Quiz Module
+```
+GET    /api/quiz                           → Fetch quiz questions by category and difficulty
+POST   /api/quiz/attempt                   → Submit a quiz answer and get correctness
+GET    /api/quiz/history                   → List user's quiz attempt history
+```
+
+### Coding Interview Module
+```
+GET    /api/coding-problems                → List available coding problems
+GET    /api/coding-problems/:id            → Get coding problem details
+POST   /api/coding-problems/:id/submit     → Submit code to Judge0 for evaluation
+GET    /api/coding-problems/:id/submissions→ List user's submissions for a problem
+```
+
+### Behavioral Interview Module
+```
+GET    /api/behavioral-questions           → Fetch behavioral interview questions
+GET    /api/behavioral-questions/:id       → Get a single behavioral question
+POST   /api/behavioral-questions/:id/answer→ Submit answer, receive Gemini feedback
+GET    /api/behavioral-answers             → List user's behavioral answers and feedback
+```
+
+### Readiness Score Module
+```
+GET    /api/readiness-score                → Calculate and return composite readiness score
+GET    /api/readiness-history             → List past readiness score records
+```
+
+### Payments Module
+```
+POST   /api/payments/init                  → Initiate SSLCommerz payment session
+POST   /api/payments/webhook               → SSLCommerz IPN callback handler (public)
+GET    /api/payments/history               → Get user's transaction history
+GET    /api/payments/subscriptions         → List user's subscription records
+GET    /api/payments/status/:transactionId → Get transaction status
+```
+
+### Notifications / Emails
+```
+POST   /api/notifications/reminder         → Trigger a study reminder email (admin/test)
+POST   /api/notifications/expiry           → Trigger a subscription expiry email (admin/test)
 ```
 
 ### Admin (role: admin required)
 ```
-GET    /api/admin/users                    → All users
-GET    /api/admin/transactions             → All transactions
-GET    /api/admin/analytics                → Revenue analytics
-GET    /api/admin/usage                    → AI usage per user
-GET    /api/admin/issues                   → Reported issues
-PATCH  /api/admin/issues/:id               → Resolve issue
-GET    /api/admin/logs                     → System logs
+GET    /api/admin/users                    → Paginated list of users
+GET    /api/admin/transactions             → All transactions with filters
+GET    /api/admin/analytics                → Revenue and user analytics
+GET    /api/admin/usage                    → AI usage and quota analytics
+GET    /api/admin/issues                   → List reported issues
+PATCH  /api/admin/issues/:id               → Update issue status
+GET    /api/admin/logs                     → System logs with filtering
+POST   /api/admin/maintenance              → Trigger admin maintenance task
 ```
 
+---
 ---
 
 ## 9. Security Implementation
@@ -1035,22 +1085,19 @@ GET    /api/admin/logs                     → System logs
 
 ### 🎯 Sprint 3 — Interview Preparation Module (Weeks 5–6)
 
-**Goal:** Full interview suite working — quiz, coding, behavioral, readiness score.
+**Goal:** Behavioral interview, quiz, and readiness score.
 
-- [ ] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
-- [ ] Setup **Judge0** on Oracle Cloud VM (Docker)
-- [ ] Implement `judge0.service.ts` — submission flow + polling
-- [ ] Build **Coding module**: `GET /coding-problems`, `POST /coding-problems/:id/submit`
-- [ ] Seed `CodingProblems` table with initial problem set
-- [ ] Write behavioral feedback Gemini prompt
-- [ ] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
-- [ ] Seed `BehavioralQuestions` table
-- [ ] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
-- [ ] Setup **Notifications module**: Nodemailer + Gmail SMTP
-- [ ] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
-- [ ] Create email HTML templates
-- [ ] Implement `streakReset.job.ts` (node-cron daily midnight)
+- [x] Build **Quiz module**: `GET /quiz` (filter by role/difficulty), `POST /quiz/attempt`
+- [x] Build **Behavioral module**: `GET /behavioral-questions`, `POST /:id/answer`
+- [x] Seed `BehavioralQuestions` table
+- [x] Build **Readiness Score module**: calculation logic + persist + `GET /readiness-score`
+- [x] Setup **Notifications module**: Nodemailer + Gmail SMTP
+- [x] Implement `sendPaymentReceipt`, `sendStudyReminder`, `sendSubscriptionExpiry`
+- [x] Create email HTML templates
+- [x] Implement `streakReset.job.ts` (node-cron daily midnight)
 - [ ] Write integration tests for interview endpoints
+
+> **Coding/Judge0 module skipped** — no free code execution service available. Revisit if a free option emerges.
 
 ---
 
@@ -1058,11 +1105,11 @@ GET    /api/admin/logs                     → System logs
 
 **Goal:** Payments working, admin dashboard complete, test coverage at 70%+, Swagger docs finalized.
 
-- [ ] Setup `config/sslcommerz.ts` — SSLCommerz SDK config
-- [ ] Build **Payments module**: `POST /payments/init` (create session, pending tx)
-- [ ] Build `POST /payments/webhook` (IPN validation, upgrade user, send receipt)
+- [ ] Setup `config/stripe.ts` — Stripe SDK config
+- [ ] Build **Payments module**: `POST /payments/init` (create Checkout Session, pending tx)
+- [ ] Build `POST /payments/webhook` (signature validation, fulfill order, send receipt)
 - [ ] Build `GET /payments/history`
-- [ ] Implement `subscriptionExpiry.job.ts` (daily cron — expire subs + downgrade roles + emails)
+- [x] Implement `subscriptionExpiry.job.ts` (daily cron — expire subs + downgrade roles + emails)
 - [ ] Build **Admin module**: all 7 admin endpoints
 - [ ] Implement analytics calculation (MRR, conversion rate, churn)
 - [ ] Finalize `rbac.middleware.ts` across all admin routes
@@ -1071,7 +1118,6 @@ GET    /api/admin/logs                     → System logs
 - [ ] Run full integration test suite against staging DB
 - [ ] Deployment hardening: env validation, graceful shutdown, health check endpoint (`GET /health`)
 - [ ] Update `README.md` with setup instructions and sandbox payment notes
-
 ---
 
 ## 11. Environment Variables
@@ -1097,10 +1143,10 @@ GEMINI_API_KEY=your_gemini_api_key
 # Judge0 (self-hosted)
 JUDGE0_URL=http://your_oracle_vm_ip:2358
 
-# SSLCommerz (sandbox)
-SSLCOMMERZ_STORE_ID=your_store_id
-SSLCOMMERZ_STORE_PASSWORD=your_store_password
-SSLCOMMERZ_IS_LIVE=false
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_abc123
 
 # Email (Gmail SMTP)
 GMAIL_USER=your_gmail@gmail.com
