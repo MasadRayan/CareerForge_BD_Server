@@ -11,13 +11,15 @@ import { quizRouter } from './module/quiz/quiz.route.js';
 import { behavioralRouter } from './module/behavioral/behavioral.route.js';
 import { readinessRouter } from './module/readiness/readiness.route.js';
 import { notificationRouter } from './module/notification/notification.route.js';
+import { subscriptionRouter } from './module/payment/payment.route.js';
+import { analyticsRouter } from './module/analytics/analytics.route.js';
 import globalHandler from './middleware/globalErrorHandler.js';
 import limiter from './middleware/ratelimit.js';
 
 
 const app: Application = express()
 
-app.use(helmet())
+app.use(helmet({ crossOriginOpenerPolicy: false }))
 app.use(
   cors({
     origin: env.FRONTEND_URL,
@@ -26,6 +28,9 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 )
+
+app.post("/api/subscription/webhook", express.raw({ type: "application/json" }))
+
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true, limit: '10kb' }))
 app.use('/api',limiter)
@@ -47,6 +52,8 @@ app.use("/api/quiz", quizRouter)
 app.use("/api/behavioral-questions", behavioralRouter)
 app.use("/api/readiness-score", readinessRouter)
 app.use("/api/notifications", notificationRouter)
+app.use("/api/subscription", subscriptionRouter);
+app.use("/api/analytics", analyticsRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
