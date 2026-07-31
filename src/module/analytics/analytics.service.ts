@@ -169,4 +169,23 @@ const getAdminAnalytics = async () => {
   }
 }
 
-export const analyticsService = { getUserStatus, getAdminAnalytics }
+const getPublicAnalytics = async () => {
+  const [cvsAnalyzed, starRewrites, careerRoadmaps, mockInterviews, totalUsers] =
+    await Promise.all([
+      prisma.analyses.count(),
+      prisma.$queryRaw<{ total: number }[]>`SELECT COALESCE(SUM(jsonb_array_length(rewrite_suggestions)), 0)::int AS "total" FROM "analyses"`,
+      prisma.roadmaps.count(),
+      prisma.behavioralAnswers.count(),
+      prisma.users.count(),
+    ])
+
+  return {
+    cvsAnalyzed,
+    starRewrites: Number(starRewrites[0]?.total ?? 0),
+    careerRoadmaps,
+    mockInterviews,
+    totalUsers,
+  }
+}
+
+export const analyticsService = { getUserStatus, getAdminAnalytics, getPublicAnalytics }

@@ -21,4 +21,13 @@ const getAdminAnalytics = async (_req: Request, res: Response, next: NextFunctio
   }
 }
 
-export const analyticsController = { getUserStatus, getAdminAnalytics }
+const getPublicAnalytics = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await analyticsService.getPublicAnalytics()
+    sendResponse(res, 200, true, 'Public analytics retrieved successfully', result)
+  } catch (error) {
+    next(error)
+  }
+}
+
+export const analyticsController = { getUserStatus, getAdminAnalytics, getPublicAnalytics }

@@ -5,6 +5,7 @@ import { verifyAdmin } from '../../middleware/verifyAdmin.js'
 
 const router = Router()
 
+router.get('/public', analyticsController.getPublicAnalytics)
 router.get('/status', verifyFBToken, analyticsController.getUserStatus)
 router.get('/admin', verifyFBToken, verifyAdmin, analyticsController.getAdminAnalytics)
 
