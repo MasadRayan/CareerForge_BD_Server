@@ -30,14 +30,33 @@ const registerUserIntoDB = async (payload: CreateUserInterFace) => {
 };
 
 const getAllUserFromDB = async (page: number) => {
-  const users = await prisma.users.findMany({
-    orderBy: {
-      created_at: "desc",
+  const safePage = Math.max(1, Number(page) || 1);
+  const limit = 10;
+
+  const [users, totalItems] = await Promise.all([
+    prisma.users.findMany({
+      orderBy: {
+        created_at: "desc",
+      },
+      skip: (safePage - 1) * limit,
+      take: limit,
+    }),
+    prisma.users.count(),
+  ]);
+
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+
+  return {
+    users,
+    pagination: {
+      currentPage: safePage,
+      limit,
+      totalItems,
+      totalPages,
+      hasNextPage: safePage < totalPages,
+      hasPreviousPage: safePage > 1,
     },
-    skip: (page - 1) * 10,
-    take: 10,
-  });
-  return users;
+  };
 };
 
 const getASingleUser = async (email: string) => {

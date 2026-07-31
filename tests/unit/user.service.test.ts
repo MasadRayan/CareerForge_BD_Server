@@ -51,17 +51,26 @@ describe("userService.getAllUserFromDB", () => {
     resetPrismaMocks();
   });
 
-  it("returns paginated users", async () => {
+  it("returns paginated users with pagination metadata", async () => {
     const users = Array.from({ length: 5 }, (_, i) => ({
       ...sampleUser,
       id: `user-${i + 1}`,
       email: `user${i + 1}@example.com`,
     }));
     mockPrisma.users.findMany.mockResolvedValue(users);
+    mockPrisma.users.count.mockResolvedValue(5);
 
     const result = await userService.getAllUserFromDB(1);
 
-    expect(result).toHaveLength(5);
+    expect(result.users).toHaveLength(5);
+    expect(result.pagination).toEqual({
+      currentPage: 1,
+      limit: 10,
+      totalItems: 5,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    });
     expect(mockPrisma.users.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 0,
@@ -72,9 +81,19 @@ describe("userService.getAllUserFromDB", () => {
 
   it("applies pagination skip correctly", async () => {
     mockPrisma.users.findMany.mockResolvedValue([]);
+    mockPrisma.users.count.mockResolvedValue(35);
 
-    await userService.getAllUserFromDB(3);
+    const result = await userService.getAllUserFromDB(3);
 
+    expect(result.pagination).toEqual(
+      expect.objectContaining({
+        currentPage: 3,
+        totalItems: 35,
+        totalPages: 4,
+        hasNextPage: true,
+        hasPreviousPage: true,
+      }),
+    );
     expect(mockPrisma.users.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         skip: 20,
