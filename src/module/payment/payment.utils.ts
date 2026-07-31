@@ -20,21 +20,34 @@ export const handleCheckOutComplete = async (session: Stripe.Checkout.Session) =
   const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId)
   const currentPeriodEnd = getPeriodEnd(stripeSubscription)
 
-  await prisma.subscriptions.updateMany({
-    where: { user_id: userId, status: 'active' },
-    data: { status: 'expired' },
-  })
+  await prisma.$transaction(async (tx) => {
+    await tx.subscriptions.updateMany({
+      where: { user_id: userId, status: 'active' },
+      data: { status: 'expired' },
+    })
 
-  await prisma.subscriptions.create({
-    data: {
-      user_id: userId,
-      plan: 'premium',
-      status: 'active',
-      started_at: new Date(),
-      currentPeriodEnd,
-      stripeCustomerId,
-      stripeSubscriptionId,
-    },
+    await tx.subscriptions.upsert({
+      where: { stripeSubscriptionId },
+      update: {
+        plan: 'premium',
+        status: 'active',
+        currentPeriodEnd,
+      },
+      create: {
+        user_id: userId,
+        plan: 'premium',
+        status: 'active',
+        started_at: new Date(),
+        currentPeriodEnd,
+        stripeCustomerId,
+        stripeSubscriptionId,
+      },
+    })
+
+    await tx.users.updateMany({
+      where: { id: userId, role: { not: 'admin' } },
+      data: { role: 'premium_user' },
+    })
   })
 }
 
@@ -61,4 +74,23 @@ export const handleChangeSubcription = async (payload: Stripe.Subscription) => {
     where: { stripeSubscriptionId },
     data: { status, currentPeriodEnd },
   })
+
+  if (status === 'active') {
+    await prisma.users.updateMany({
+      where: { id: existing.user_id, role: { not: 'admin' } },
+      data: { role: 'premium_user' },
+    })
+    return
+  }
+
+  const activeCount = await prisma.subscriptions.count({
+    where: { user_id: existing.user_id, status: 'active' },
+  })
+
+  if (activeCount === 0) {
+    await prisma.users.updateMany({
+      where: { id: existing.user_id, role: 'premium_user' },
+      data: { role: 'free_user' },
+    })
+  }
 }
