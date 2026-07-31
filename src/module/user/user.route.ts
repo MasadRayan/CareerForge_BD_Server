@@ -10,6 +10,7 @@ router.get("/all", verifyFBToken, verifyAdmin, userController.getAllUsers);
 router.get("/role",  userController.getRoleOfUser);
 router.get("/me/:email", verifyFBToken, userController.getASingleUser);
 router.patch("/update/:email", verifyFBToken, userController.updateASingleUser);
+router.patch("/role/:email", verifyFBToken, verifyAdmin, userController.updateUserRole);
 router.delete("/delete/:email", verifyFBToken, verifyAdmin, userController.deleteASingleUser);
 
 export const userRouter = router;

@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from "express";
+import { z } from "zod";
 import sendResponse from "../../utils/sendResponse";
 import { userService } from "./user.service";
-import { number } from "zod";
+import AppError from "../../utils/AppError";
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -78,11 +79,34 @@ const getRoleOfUser = async (req: Request, res: Response, next: NextFunction) =>
   }
 }
 
+const roleSchema = z.enum(["free_user", "premium_user", "admin"]);
+
+const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const email = req.params.email;
+    const parsed = roleSchema.safeParse(req.body?.role);
+
+    if (!parsed.success) {
+      throw new AppError("Invalid role. Must be free_user, premium_user or admin", 400);
+    }
+
+    if (req.user!.email === email) {
+      throw new AppError("You cannot change your own role", 400);
+    }
+
+    const updatedUser = await userService.updateUserRoleFromDB(email, parsed.data);
+    sendResponse(res, 200, true, "User role updated successfully", updatedUser);
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const userController = {
   createUser,
   getAllUsers,
   getASingleUser,
   updateASingleUser,
   deleteASingleUser,
-  getRoleOfUser
+  getRoleOfUser,
+  updateUserRole
 };

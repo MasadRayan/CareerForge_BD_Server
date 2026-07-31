@@ -11,3 +11,9 @@ export interface UpdateUserInterFace {
     experience_level ?: string;
     photoURL ?: string
 }
+
+export type UserRole = 'free_user' | 'premium_user' | 'admin';
+
+export interface UpdateUserRoleInterFace {
+    role: UserRole;
+}

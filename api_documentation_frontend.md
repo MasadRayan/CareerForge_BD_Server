@@ -138,6 +138,50 @@ Update a user's profile.
 
 ---
 
+### `PATCH /api/users/role/:email`
+Update a user's role (grant or revoke admin / premium access).
+
+**Auth:** Firebase Token + Admin role required
+
+**Path Params:** `email` — target user's email address
+
+**Request Body:**
+
+```json
+{
+  "role": "admin"
+}
+```
+
+`role` must be one of: `"free_user"`, `"premium_user"`, `"admin"`
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "User role updated successfully",
+  "data": {
+    "id": "uuid",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "admin",
+    "photoURL": "",
+    "target_role": "fullstack",
+    "experience_level": "mid",
+    "created_at": "2026-07-29T10:00:00.000Z",
+    "updated_at": "2026-07-29T10:00:00.000Z"
+  }
+}
+```
+
+**Errors:**
+- `400` — `{ "success": false, "message": "Invalid role. Must be free_user, premium_user or admin" }`
+- `400` — `{ "success": false, "message": "You cannot change your own role" }`
+- `404` — `{ "success": false, "message": "User not found" }`
+
+---
+
 ### `DELETE /api/users/delete/:email`
 Delete a user account.
 
@@ -1136,9 +1180,11 @@ Stripe webhook endpoint (called by Stripe server-side).
 **Body:** Raw Stripe event (Buffer)
 
 **Events handled:**
-- `checkout.session.completed` — activates premium subscription
-- `customer.subscription.created` — syncs subscription status
-- `customer.subscription.deleted` — marks subscription as cancelled/expired
+- `checkout.session.completed` — activates premium subscription **and upgrades the user's role to `premium_user`** (admin users are never downgraded)
+- `customer.subscription.created` — syncs subscription status; ensures role is `premium_user` while active
+- `customer.subscription.deleted` — marks subscription as cancelled/expired **and downgrades the user's role back to `free_user`** (only when no active subscription remains)
+
+> **Note:** The user's `role` is only ever changed server-side by this webhook. There is no client-facing endpoint that can set a role.
 
 ---
 
@@ -1206,7 +1252,30 @@ Get payment/subscription history for the current user.
 
 ## Analytics (`/api/analytics`)
 
-**Auth:** All endpoints require Firebase Token
+**Auth:** `/public` requires no auth; `/status` requires Firebase Token; `/admin` requires Firebase Token + Admin role
+
+### `GET /api/analytics/public`
+Get aggregate platform statistics for the public landing page (logged-out visitors).
+
+**Auth:** None
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Public analytics retrieved successfully",
+  "data": {
+    "cvsAnalyzed": 2500,
+    "starRewrites": 12000,
+    "careerRoadmaps": 850,
+    "mockInterviews": 700,
+    "totalUsers": 2000
+  }
+}
+```
+
+---
 
 ### `GET /api/analytics/status`
 Get the current user's analytics dashboard data.
