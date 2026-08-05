@@ -19,6 +19,9 @@ import limiter from './middleware/ratelimit.js';
 
 const app: Application = express()
 
+app.set('trust proxy', 1)
+app.disable('x-powered-by')
+
 app.use(helmet({ crossOriginOpenerPolicy: false }))
 app.use(
   cors({
@@ -34,6 +37,9 @@ app.post("/api/subscription/webhook", express.raw({ type: "application/json" }))
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true, limit: '10kb' }))
 app.use('/api',limiter)
+app.get(['/favicon.png', '/favicon.ico'], (_req: Request, res: Response) => {
+  res.status(204).end()
+})
 app.get('/', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,

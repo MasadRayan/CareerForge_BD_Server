@@ -1,4 +1,5 @@
 import { rateLimit } from "express-rate-limit";
+import type { Request } from "express";
 
 
 const limiter = rateLimit({
@@ -6,6 +7,7 @@ const limiter = rateLimit({
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req: Request) => req.ip ?? "unknown",
     message: {
       success: false,
       message: 'Too many requests, please try again later.',

@@ -7,7 +7,8 @@ export default defineConfig({
   clean: true,
   bundle: true,
   splitting: false,
-  sourcemap: true,
+  sourcemap: false,
+  minify: true,
   // Add this banner to shim require() for CJS dependencies
   banner: {
     js: `

@@ -6,8 +6,7 @@ import { startScheduler } from './jobs/scheduler.js'
 
 const PORT = env.PORT
 
-const server = http.createServer(app)
-let serverListening = false
+const isServerless = process.env.VERCEL === '1'
 
 async function assertDatabaseConnection(): Promise<void> {
   try {
@@ -28,18 +27,7 @@ function gracefulShutdown(signal: string, exitCode: number = 0): void {
     process.exit(exitCode)
   }
 
-  if (serverListening) {
-    server.close(async (err) => {
-      if (err) {
-        console.error('Error closing HTTP server:', err)
-        process.exit(1)
-      }
-      await cleanup()
-    })
-  } else {
-    // Server never started listening — skip server.close()
-    void cleanup()
-  }
+  void cleanup()
 
   // Force exit if graceful shutdown stalls
   setTimeout(() => {
@@ -53,14 +41,29 @@ async function startServer(): Promise<void> {
     await assertDatabaseConnection()
     startScheduler()
 
+    const server = http.createServer(app)
     server.listen(PORT, () => {
-      serverListening = true
       console.log('─────────────────────────────────────────────')
       console.log(`🚀 Server     : http://localhost:${PORT}`)
       console.log(`❤️  Health     : http://localhost:${PORT}/health`)
       console.log(`📄 API Docs   : http://localhost:${PORT}/api-docs`)
       console.log(`🌍 Environment: ${env.NODE_ENV}`)
       console.log('─────────────────────────────────────────────')
+    })
+
+    // ─── Process Signal Handlers ──────────────────────────────────
+    ;['SIGINT', 'SIGTERM'].forEach((signal) => {
+      process.on(signal, () => gracefulShutdown(signal, 0))
+    })
+
+    process.on('unhandledRejection', (reason) => {
+      console.error('💥 Unhandled Promise Rejection:', reason)
+      gracefulShutdown('unhandledRejection', 1)
+    })
+
+    process.on('uncaughtException', (error) => {
+      console.error('💥 Uncaught Exception:', error)
+      gracefulShutdown('uncaughtException', 1)
     })
   } catch (error) {
     console.error('❌ Failed to start server:', error)
@@ -69,19 +72,8 @@ async function startServer(): Promise<void> {
   }
 }
 
-// ─── Process Signal Handlers ──────────────────────────────────
-;['SIGINT', 'SIGTERM'].forEach((signal) => {
-  process.on(signal, () => gracefulShutdown(signal, 0))
-})
+if (!isServerless) {
+  void startServer()
+}
 
-process.on('unhandledRejection', (reason) => {
-  console.error('💥 Unhandled Promise Rejection:', reason)
-  gracefulShutdown('unhandledRejection', 1)
-})
-
-process.on('uncaughtException', (error) => {
-  console.error('💥 Uncaught Exception:', error)
-  gracefulShutdown('uncaughtException', 1)
-})
-
-void startServer()
+export default app
