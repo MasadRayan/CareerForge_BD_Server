@@ -11,5 +11,11 @@
      "src": "/(.*)",
      "dest": "dist/server.js"
    }
+ ],
+ "crons": [
+   {
+     "path": "/api/jobs/refresh-w3schools",
+     "schedule": "0 4 * * 1"
+   }
  ]
 }

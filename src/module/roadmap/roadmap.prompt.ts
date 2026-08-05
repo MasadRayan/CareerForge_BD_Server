@@ -40,6 +40,7 @@ RULES:
 - Output EXACTLY ${endWeek - startWeek + 1} week(s) (week_number from ${startWeek} to ${endWeek}).
 - Each week: exactly 2 resources, exactly 5 daily_tasks.
 - CRITICAL: Never invent or guess URLs. Only use URLs you are certain are real and publicly accessible. Every URL will be checked.
+- For "docs" type resources, prefer official documentation or w3schools.com tutorials (e.g. https://www.w3schools.com/js/).
 
 SKILL GAPS: ${JSON.stringify(skills)}
 
@@ -81,6 +82,7 @@ GUIDELINES:
 - Each week: exactly 2 resources, exactly 5 daily_tasks.
 - Order weeks from foundational concepts to advanced application.
 - CRITICAL: Never invent or guess URLs. Only use URLs you are certain are real and publicly accessible. Every URL will be checked.
+- For "docs" type resources, prefer official documentation or w3schools.com tutorials (e.g. https://www.w3schools.com/js/).
 
 SKILL GAPS TO ADDRESS: ${JSON.stringify(skills)}
 

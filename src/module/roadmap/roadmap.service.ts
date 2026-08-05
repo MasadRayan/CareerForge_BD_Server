@@ -4,6 +4,7 @@ import { groqChatCompletion } from "../../config/groq.js";
 import { verifyResources } from "../../lib/urlValidator.js";
 import { getFallbackUrl } from "../../lib/searchFallback.js";
 import { roadmapPrompt, roadmapBatchPrompt } from "./roadmap.prompt.js";
+import { findW3SchoolUrl } from "../../lib/w3schools.js";
 import {
   roadmapResponseSchema,
   type CreateRoadmapPayload,
@@ -60,7 +61,8 @@ const applyResourceFallbacks = async (
   for (const week of response.weeks) {
     for (const res of week.resources) {
       if (invalidUrls.has(res.url)) {
-        res.url = getFallbackUrl(res.title, res.type);
+        const w3Url = await findW3SchoolUrl(res.title);
+        res.url = w3Url ?? getFallbackUrl(res.title, res.type);
       }
     }
   }

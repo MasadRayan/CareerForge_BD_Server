@@ -1,0 +1,14 @@
+// ─── W3SchoolsLinks ───────────────────────────────────────────
+// Curated, scraped tutorial URLs from w3schools.com. Refreshed on a
+// schedule (Vercel Cron) so roadmap resources can point at real,
+// verified lesson pages instead of guessed or search-fallback URLs.
+
+model W3schoolsLinks {
+  id    String @id @default(uuid())
+  topic String
+  title String
+  url   String
+
+  @@index([topic])
+  @@map("w3schools_links")
+}
