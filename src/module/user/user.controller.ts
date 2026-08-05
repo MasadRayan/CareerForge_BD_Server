@@ -39,6 +39,8 @@ const getASingleUser = async (
   }
 };
 
+const skillsSchema = z.array(z.string());
+
 const updateASingleUser = async (
   req: Request,
   res: Response,
@@ -47,6 +49,14 @@ const updateASingleUser = async (
   try {
     const email = req.params.email;
     const payload = req.body;
+
+    if (payload.skills !== undefined) {
+      const parsed = skillsSchema.safeParse(payload.skills);
+      if (!parsed.success) {
+        throw new AppError("skills must be an array of strings", 400);
+      }
+    }
+
     const updatedUser = await userService.updateASingleUserInDB(email, payload);
     sendResponse(res, 200, true, "User updated successfully", updatedUser);
 

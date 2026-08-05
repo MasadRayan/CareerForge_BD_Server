@@ -153,6 +153,27 @@ describe("userService.updateASingleUserInDB", () => {
     );
   });
 
+  it("persists skills when provided", async () => {
+    mockPrisma.users.findUnique.mockResolvedValue(sampleUser);
+    mockPrisma.users.update.mockResolvedValue({
+      ...sampleUser,
+      skills: ["React", "TypeScript"],
+    });
+
+    await userService.updateASingleUserInDB("test@example.com", {
+      skills: ["React", "TypeScript"],
+    });
+
+    expect(mockPrisma.users.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { email: "test@example.com" },
+        data: expect.objectContaining({
+          skills: ["React", "TypeScript"],
+        }),
+      }),
+    );
+  });
+
   it("throws 404 when user not found", async () => {
     mockPrisma.users.findUnique.mockResolvedValue(null);
 

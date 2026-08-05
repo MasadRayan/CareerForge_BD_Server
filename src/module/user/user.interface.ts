@@ -9,7 +9,8 @@ export interface CreateUserInterFace {
 export interface UpdateUserInterFace {
     name ?: string;
     experience_level ?: string;
-    photoURL ?: string
+    photoURL ?: string;
+    skills ?: string[];
 }
 
 export type UserRole = 'free_user' | 'premium_user' | 'admin';

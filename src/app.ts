@@ -5,6 +5,7 @@ import env from './config/env.js'
 import { userRouter } from './module/user/user.route.js';
 import { jobDescriptionRouter } from './module/jobDescription/jobDescription.route.js';
 import { cvRouter } from './module/cv/cv.route.js';
+import { skillsRouter } from './module/skills/skills.route.js';
 import { analysisRouter } from './module/analysis/analysis.route.js';
 import { roadmapRouter } from './module/roadmap/roadmap.route.js';
 import { quizRouter } from './module/quiz/quiz.route.js';
@@ -61,6 +62,7 @@ app.get('/health', (_req: Request, res: Response) => {
 app.use("/api/users", userRouter)
 app.use("/api/jd", jobDescriptionRouter)
 app.use("/api/cv", cvRouter)
+app.use("/api/cv", skillsRouter)
 app.use("/api/analysis", analysisRouter)
 app.use("/api/roadmap", roadmapRouter)
 app.use("/api/quiz", quizRouter)

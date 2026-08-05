@@ -74,7 +74,7 @@ const updateASingleUserInDB = async (
   email: string,
   payload: UpdateUserInterFace,
 ) => {
-  const { name, experience_level, photoURL } = payload;
+  const { name, experience_level, photoURL, skills } = payload;
   const isUserExists = await prisma.users.findUnique({
     where: {
       email,
@@ -93,6 +93,7 @@ const updateASingleUserInDB = async (
       name,
       experience_level,
       photoURL,
+      skills,
     },
   });
 };

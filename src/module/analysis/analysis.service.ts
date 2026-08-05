@@ -4,6 +4,7 @@ import AppError from "../../utils/AppError.js";
 import { groqChatCompletion } from "../../config/groq.js";
 import { atsAnalysisPrompt } from "./analysis.prompts.js";
 import { prepareCV, prepareJD } from "../../utils/tokenUtils.js";
+import { extractJsonObject } from "../../utils/json.js";
 import type {
   CreateAnalysisPayload,
   GeminiAtsResponse,
@@ -35,38 +36,6 @@ const atsResponseSchema = z.object({
   gap_skills: z.array(z.string()),
   rewrite_suggestions: z.array(rewriteSuggestionSchema),
 });
-
-
-const extractJsonObject = (raw: string): unknown => {
-  const cleaned = raw.trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // fall through
-  }
-
-  const fenced = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) {
-    try {
-      return JSON.parse(fenced[1].trim());
-    } catch {
-      // fall through
-    }
-  }
-
-  const firstBrace = cleaned.indexOf("{");
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    try {
-      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-    } catch {
-      // fall through
-    }
-  }
-
-  throw new AppError("AI returned a non-JSON response", 502);
-};
 
 
 const callGroqForAts = async (
