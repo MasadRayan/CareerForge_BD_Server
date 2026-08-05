@@ -1,4 +1,4 @@
-import { PDFParse } from "pdf-parse";
+import pdf from "pdf-parse";
 import mammoth from "mammoth";
 import AppError from "../utils/AppError";
 
@@ -12,7 +12,7 @@ const DOCX_MIMETYPE =
 
 /**
  * Extracts plain text from a CV file buffer.
- * PDF → pdf-parse (PDFParse class, v2 API), DOCX → mammoth.
+ * PDF → pdf-parse (v1, pure-Node, serverless-safe), DOCX → mammoth.
  *
  * @param buffer   the file bytes (from multer memoryStorage)
  * @param mimetype the uploaded file's mimetype
@@ -24,11 +24,9 @@ export const parseCVText = async (
   let text: string;
 
   if (mimetype === "application/pdf") {
-    // pdf-parse v2: instantiate with the buffer, then call getText().
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
+    // pdf-parse v1: pass the buffer directly, returns { text, ... }.
+    const result = await pdf(buffer);
     text = result.text;
-    await parser.destroy();
   } else if (mimetype === DOCX_MIMETYPE) {
     const result = await mammoth.extractRawText({ buffer });
     text = result.value;
