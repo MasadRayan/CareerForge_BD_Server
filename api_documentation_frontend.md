@@ -1250,6 +1250,59 @@ Get payment/subscription history for the current user.
 
 ---
 
+### `GET /api/subscription/all-payments`
+Get all subscription/payment records across all users (paginated, searchable).
+
+**Auth:** Firebase Token + Admin role required
+
+**Query Params:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `search` | string | — | Filter by user name, user email, Stripe customer ID, or Stripe subscription ID (case-insensitive partial match) |
+| `page` | number | 1 | |
+| `limit` | number | 10 | Max 50 |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Payments fetched successfully",
+  "data": {
+    "payments": [
+      {
+        "id": "uuid",
+        "user_id": "uuid",
+        "plan": "premium",
+        "status": "active",
+        "started_at": "2026-07-29T10:00:00.000Z",
+        "currentPeriodEnd": "2026-08-28T10:00:00.000Z",
+        "created_at": "2026-07-29T10:00:00.000Z",
+        "user": {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "photoURL": "https://..."
+        }
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 10,
+      "totalItems": 120,
+      "totalPages": 12,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    }
+  }
+}
+```
+
+> **Note:** The subscription rate is a fixed **5000 BDT**. Revenue metrics in
+> `/api/analytics/admin` are derived from this rate.
+
+---
+
 ## Analytics (`/api/analytics`)
 
 **Auth:** `/public` requires no auth; `/status` requires Firebase Token; `/admin` requires Firebase Token + Admin role
@@ -1323,6 +1376,8 @@ Get admin-level analytics (requires admin role).
 
 **Auth:** Firebase Token + Admin role required
 
+> **Note:** Revenue is derived from the subscriptions model at a fixed rate of **5000 BDT / subscription** (`mrr` = active subscriptions created this month × 5000; `totalRevenue` = active subscriptions × 5000; `revenueByMonth` = all subscription records grouped by month × 5000).
+
 **Success Response (200):**
 
 ```json
@@ -1330,9 +1385,9 @@ Get admin-level analytics (requires admin role).
   "success": true,
   "message": "Admin analytics retrieved successfully",
   "data": {
-    "mrr": 4999.00,
+    "mrr": 60000,
     "activeSubscribers": 120,
-    "totalRevenue": 45000.00,
+    "totalRevenue": 600000,
     "churnRate": 0.05,
     "totalUsers": 850,
     "userSplit": {
@@ -1341,8 +1396,8 @@ Get admin-level analytics (requires admin role).
       "admin": 3
     },
     "revenueByMonth": [
-      { "month": "2026-01", "revenue": 4000 },
-      { "month": "2026-02", "revenue": 4200 }
+      { "month": "2026-01", "revenue": 20000 },
+      { "month": "2026-02", "revenue": 21000 }
     ],
     "newSignupsThisMonth": 45,
     "newSubscriptionsThisMonth": 12,

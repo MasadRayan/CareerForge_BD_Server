@@ -43,9 +43,23 @@ const getPaymentHistory = async (req: Request, res: Response, next: NextFunction
   }
 }
 
+const getAllPayments = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Number(req.query.page)
+    const limit = Number(req.query.limit)
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined
+
+    const result = await subscriptionService.getAllPaymentsFromDB({ page, limit, search })
+    sendResponse(res, 200, true, 'Payments fetched successfully', result)
+  } catch (error) {
+    next(error)
+  }
+}
+
 export const subscriptionController = {
   createCheckOutSession,
   webhookController,
   getSubscriptionStatus,
   getPaymentHistory,
+  getAllPayments,
 }

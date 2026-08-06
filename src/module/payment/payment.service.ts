@@ -1,4 +1,5 @@
 import Stripe from 'stripe'
+import { Prisma } from '../../../generated/prisma/client'
 import { stripe } from '../../lib/stripe.js'
 import { prisma } from '../../lib/prisma.js'
 import env from '../../config/env.js'
@@ -94,6 +95,64 @@ const getSubscriptionStatus = async (userId: string) => {
   }
 }
 
+const getAllPaymentsFromDB = async ({
+  page,
+  limit,
+  search,
+}: {
+  page?: number
+  limit?: number
+  search?: string
+}) => {
+  const safePage = Math.max(1, Number(page) || 1)
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10))
+
+  const where: Prisma.SubscriptionsWhereInput =
+    search && search.trim().length > 0
+      ? {
+          OR: [
+            { user: { name: { contains: search.trim(), mode: 'insensitive' } } },
+            { user: { email: { contains: search.trim(), mode: 'insensitive' } } },
+            { stripeCustomerId: { contains: search.trim() } },
+            { stripeSubscriptionId: { contains: search.trim() } },
+          ],
+        }
+      : {}
+
+  const [payments, totalItems] = await Promise.all([
+    prisma.subscriptions.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            photoURL: true,
+          },
+        },
+      },
+    }),
+    prisma.subscriptions.count({ where }),
+  ])
+
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / safeLimit)
+
+  return {
+    payments,
+    pagination: {
+      currentPage: safePage,
+      limit: safeLimit,
+      totalItems,
+      totalPages,
+      hasNextPage: safePage < totalPages,
+      hasPreviousPage: safePage > 1,
+    },
+  }
+}
+
 const getPaymentHistory = async (userId: string) => {
   const subscriptions = await prisma.subscriptions.findMany({
     where: { user_id: userId },
@@ -116,4 +175,5 @@ export const subscriptionService = {
   webhookService,
   getSubscriptionStatus,
   getPaymentHistory,
+  getAllPaymentsFromDB,
 }

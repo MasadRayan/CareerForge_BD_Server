@@ -1,5 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 
+const SUBSCRIPTION_RATE_BDT = 5000
+
 const getUserStatus = async (userId: string) => {
   const [
     subscription,
@@ -86,8 +88,7 @@ const getAdminAnalytics = async () => {
 
   const [
     activeSubscribers,
-    totalRevenue,
-    mrr,
+    newActiveThisMonth,
     userSplit,
     newSignupsThisMonth,
     newSubscriptionsThisMonth,
@@ -96,18 +97,12 @@ const getAdminAnalytics = async () => {
     totalAnalyses,
     totalCvs,
     totalRoadmaps,
-    allRevenueTx,
+    allPayments,
   ] = await Promise.all([
     prisma.subscriptions.count({ where: { status: 'active' } }),
 
-    prisma.transactions.aggregate({
-      where: { status: 'success' },
-      _sum: { amount: true },
-    }),
-
-    prisma.transactions.aggregate({
-      where: { status: 'success', created_at: { gte: startOfMonth } },
-      _sum: { amount: true },
+    prisma.subscriptions.count({
+      where: { status: 'active', created_at: { gte: startOfMonth } },
     }),
 
     prisma.users.groupBy({
@@ -134,9 +129,8 @@ const getAdminAnalytics = async () => {
 
     prisma.roadmaps.count(),
 
-    prisma.transactions.findMany({
-      where: { status: 'success' },
-      select: { amount: true, created_at: true },
+    prisma.subscriptions.findMany({
+      select: { created_at: true },
       orderBy: { created_at: 'asc' },
     }),
   ])
@@ -144,9 +138,9 @@ const getAdminAnalytics = async () => {
   const churnRate = activeSubscribers > 0 ? cancelledLast30 / activeSubscribers : 0
 
   const revenueByMonthMap = new Map<string, number>()
-  for (const tx of allRevenueTx) {
-    const key = `${tx.created_at.getFullYear()}-${String(tx.created_at.getMonth() + 1).padStart(2, '0')}`
-    revenueByMonthMap.set(key, (revenueByMonthMap.get(key) ?? 0) + Number(tx.amount))
+  for (const sub of allPayments) {
+    const key = `${sub.created_at.getFullYear()}-${String(sub.created_at.getMonth() + 1).padStart(2, '0')}`
+    revenueByMonthMap.set(key, (revenueByMonthMap.get(key) ?? 0) + SUBSCRIPTION_RATE_BDT)
   }
   const revenueByMonth = Array.from(revenueByMonthMap.entries()).map(([month, revenue]) => ({
     month,
@@ -154,9 +148,9 @@ const getAdminAnalytics = async () => {
   }))
 
   return {
-    mrr: Number(mrr._sum.amount ?? 0),
+    mrr: newActiveThisMonth * SUBSCRIPTION_RATE_BDT,
     activeSubscribers,
-    totalRevenue: Number(totalRevenue._sum.amount ?? 0),
+    totalRevenue: activeSubscribers * SUBSCRIPTION_RATE_BDT,
     churnRate: Math.round(churnRate * 100) / 100,
     totalUsers,
     userSplit: Object.fromEntries(userSplit.map((g) => [g.role, g._count])),
