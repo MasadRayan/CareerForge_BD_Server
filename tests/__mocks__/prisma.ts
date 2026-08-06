@@ -34,6 +34,7 @@ export const mockPrisma = {
   streaks: createMockModel(),
   systemLogs: createMockModel(),
   w3schoolsLinks: createMockModel(),
+  bdjobsJobs: createMockModel(),
   reportedIssues: createMockModel(),
   $queryRaw: jest.fn(),
   $disconnect: jest.fn(),

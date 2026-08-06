@@ -1,0 +1,27 @@
+// ─── BdjobsJobs ────────────────────────────────────────────────
+// Snapshot of remote/local roles scraped from bdjobs.com via a local
+// Selenium crawler (`npm run crawl:bdjobs`). The API reads from this
+// table only (no live scraping at request time) so responses stay fast
+// and work on Vercel serverless, where a browser cannot run.
+
+model BdjobsJobs {
+  id               String   @id @default(uuid())
+  sourceJobId      String   @unique
+  title            String
+  company          String?
+  location         String?
+  salary           String?
+  jobType          String?
+  category         String?
+  publicationDate  DateTime?
+  deadlineDate     DateTime?
+  description      String?
+  url              String   @unique
+  scrapedAt        DateTime @default(now())
+
+  @@index([title])
+  @@index([company])
+  @@index([category])
+  @@index([scrapedAt])
+  @@map("bdjobs_jobs")
+}

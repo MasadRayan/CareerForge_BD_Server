@@ -4,119 +4,90 @@ jest.mock("../../src/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
-const mockAxiosGet = jest.fn();
-jest.mock("axios", () => ({
-  __esModule: true,
-  default: { get: (...args: unknown[]) => mockAxiosGet(...args) },
-}));
-
 import { jobsService } from "../../src/module/jobs/jobs.service";
+import AppError from "../../src/utils/AppError";
 
-describe("jobsService.searchJobs", () => {
+const row = (overrides: Record<string, unknown> = {}) => ({
+  id: "job-1",
+  sourceJobId: "/job/details/112233",
+  title: "React Developer",
+  company: "Acme",
+  location: "Dhaka",
+  salary: null,
+  jobType: null,
+  category: "Engineering",
+  publicationDate: null,
+  deadlineDate: new Date("2026-09-01"),
+  description: "Build UIs with React.",
+  url: "https://bdjobs.com/job/details/112233",
+  scrapedAt: new Date(),
+  ...overrides,
+});
+
+describe("jobsService.searchJobs reads from BDJOBs DB catalog", () => {
   beforeEach(() => {
     resetPrismaMocks();
-    jest.clearAllMocks();
   });
 
-  it("returns normalized jobs from Remotive", async () => {
-    mockAxiosGet.mockResolvedValue({
-      data: {
-        jobs: [
-          {
-            id: "job-1",
-            title: "Senior React Developer",
-            company_name: "Acme",
-            candidate_required_location: "Worldwide",
-            salary: "$100k",
-            job_type: "full_time",
-            publication_date: "2026-08-01T00:00:00",
-            tags: ["react", "typescript"],
-            url: "https://remotive.com/remote-jobs/job-1",
-            description: "<p>We need <strong>React</strong> experts</p>",
-          },
-        ],
-        "page-count": 1,
-        "total-jobs": 1,
-      },
-    });
+  it("returns jobs from the bdjobs_jobs table", async () => {
+    mockPrisma.bdjobsJobs.findMany.mockResolvedValue([row()]);
+    mockPrisma.bdjobsJobs.count.mockResolvedValue(1);
 
     const result = await jobsService.searchJobs("react", 1, 10);
 
     expect(result.jobs).toHaveLength(1);
-    expect(result.page).toBe(1);
     expect(result.jobs[0]).toMatchObject({
       id: "job-1",
-      title: "Senior React Developer",
+      title: "React Developer",
       company: "Acme",
-      location: "Worldwide",
-      salary: "$100k",
-      tags: ["react", "typescript"],
-      url: "https://remotive.com/remote-jobs/job-1",
+      location: "Dhaka",
+      url: "https://bdjobs.com/job/details/112233",
     });
-    expect(result.jobs[0].snippet).toBe("We need React experts");
+    expect(result.total_jobs).toBe(1);
+    expect(result.page_count).toBe(1);
   });
 
-  it("passes the search query and category to Remotive", async () => {
-    mockAxiosGet.mockResolvedValue({ data: { jobs: [] } });
+  it("passes pagination (skip/take) to the DB query", async () => {
+    mockPrisma.bdjobsJobs.findMany.mockResolvedValue([]);
+    mockPrisma.bdjobsJobs.count.mockResolvedValue(0);
 
-    await jobsService.searchJobs("node.js", 2, 25);
+    await jobsService.searchJobs("", 2, 25);
 
-    expect(mockAxiosGet).toHaveBeenCalledWith(
-      "https://remotive.com/api/remote-jobs",
-      expect.objectContaining({
-        params: { category: "software-dev", page: 2, limit: 25, search: "node.js" },
-      }),
+    expect(mockPrisma.bdjobsJobs.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 25, take: 25 }),
     );
   });
 
-  it("returns an empty list when Remotive returns no jobs", async () => {
-    mockAxiosGet.mockResolvedValue({ data: {} });
+  it("returns an empty page when no jobs are scraped yet", async () => {
+    mockPrisma.bdjobsJobs.findMany.mockResolvedValue([]);
+    mockPrisma.bdjobsJobs.count.mockResolvedValue(0);
 
-    const result = await jobsService.searchJobs("", 1, 10);
+    const result = await jobsService.searchJobs("data analysis", 1, 10);
 
     expect(result.jobs).toEqual([]);
+    expect(result.total_jobs).toBe(0);
   });
 
-  it("throws 502 when Remotive fails", async () => {
-    mockPrisma.systemLogs.create.mockResolvedValue({});
-    mockAxiosGet.mockRejectedValue(new Error("network down"));
+  it("falls back to any-token matching when AND matching returns nothing", async () => {
+    mockPrisma.bdjobsJobs.findMany
+      .mockResolvedValueOnce([]) // strict AND query → empty
+      .mockResolvedValueOnce([row({ title: "Data Analyst" })]); // loose OR query
+    mockPrisma.bdjobsJobs.count.mockResolvedValue(0);
+
+    const result = await jobsService.searchJobs("data analysis", 1, 10);
+
+    expect(result.jobs.map((j) => j.title)).toEqual(["Data Analyst"]);
+    expect(mockPrisma.bdjobsJobs.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws 502 when the DB read fails", async () => {
+    mockPrisma.bdjobsJobs.findMany.mockRejectedValue(new Error("db down"));
 
     await expect(
       jobsService.searchJobs("react", 1, 10),
-    ).rejects.toThrow("Job search is unavailable. Please try again in a moment.");
-  });
-
-  it("filters results to title-relevant jobs only", async () => {
-    mockAxiosGet.mockResolvedValue({
-      data: {
-        jobs: [
-          { id: "f1", title: "Tech Lead Full-Stack Rails Engineer", company_name: "A", description: "<p>x</p>" },
-          { id: "f2", title: "Senior Product Engineer (Fullstack)", company_name: "B", description: "<p>x</p>" },
-          { id: "f3", title: "Freelance Copywriter", company_name: "C", description: "<p>x</p>" },
-          { id: "f4", title: "Senior Graphic Designer", company_name: "D", description: "<p>x</p>" },
-        ],
-      },
-    });
-
-    const result = await jobsService.searchJobs("Full Stack Developer", 1, 10);
-
-    expect(result.jobs.map((j) => j.id)).toEqual(["f1", "f2"]);
-  });
-
-  it("matches fullstack variants regardless of separator", async () => {
-    mockAxiosGet.mockResolvedValue({
-      data: {
-        jobs: [
-          { id: "a", title: "Fullstack Developer", company_name: "A", description: "" },
-          { id: "b", title: "Full-Stack Developer", company_name: "B", description: "" },
-          { id: "c", title: "Full Stack Engineer", company_name: "C", description: "" },
-          { id: "d", title: "Data Entry Specialist", company_name: "D", description: "" },
-        ],
-      },
-    });
-
-    const result = await jobsService.searchJobs("full stack developer", 1, 10);
-
-    expect(result.jobs.map((j) => j.id)).toEqual(["a", "b", "c"]);
+    ).rejects.toThrow(AppError);
+    await expect(
+      jobsService.searchJobs("react", 1, 10),
+    ).rejects.toMatchObject({ statusCode: 502 });
   });
 });

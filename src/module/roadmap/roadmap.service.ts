@@ -4,7 +4,11 @@ import { groqChatCompletion } from "../../config/groq.js";
 import { verifyResources } from "../../lib/urlValidator.js";
 import { getFallbackUrl } from "../../lib/searchFallback.js";
 import { roadmapPrompt, roadmapBatchPrompt } from "./roadmap.prompt.js";
-import { findW3SchoolUrl } from "../../lib/w3schools.js";
+import {
+  findW3SchoolLinks,
+  findW3SchoolUrl,
+  tokenizeKeywords,
+} from "../../lib/w3schools.js";
 import {
   roadmapResponseSchema,
   type CreateRoadmapPayload,
@@ -79,6 +83,33 @@ const applyResourceFallbacks = async (
       },
     })
     .catch(() => {});
+
+  return response;
+};
+
+
+const enrichWithW3Schools = async (
+  response: GroqRoadmapResponse,
+  gapSkills: string[],
+): Promise<GroqRoadmapResponse> => {
+  for (const week of response.weeks) {
+    const keywords = [
+      ...tokenizeKeywords(week.topic_summary),
+      ...week.resources.flatMap((r) => tokenizeKeywords(r.title)),
+      ...tokenizeKeywords(gapSkills.join(" ")),
+    ];
+    if (keywords.length === 0) continue;
+
+    const links = await findW3SchoolLinks(keywords, 2);
+    if (links.length === 0) continue;
+
+    const existing = new Set(week.resources.map((r) => r.url));
+    for (const link of links) {
+      if (existing.has(link.url)) continue;
+      week.resources.push({ title: link.title, url: link.url, type: "docs" });
+      existing.add(link.url);
+    }
+  }
 
   return response;
 };
@@ -268,13 +299,18 @@ const createRoadmapInDB = async (
     durationWeeks,
   );
 
+  const aiResultEnriched = await enrichWithW3Schools(
+    aiResult,
+    analysis.gap_skills as string[],
+  );
+
   const roadmap = await prisma.roadmaps.create({
     data: {
       analysis_id,
       user_id: userId,
       duration_weeks: durationWeeks,
       weeks: {
-        create: aiResult.weeks.map((week) => {
+        create: aiResultEnriched.weeks.map((week) => {
           const { start, end } = weekDateRange(week.week_number);
           return {
             week_number: week.week_number,

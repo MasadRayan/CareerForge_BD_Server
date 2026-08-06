@@ -109,6 +109,7 @@ describe("POST /api/roadmap", () => {
     });
     groqChatCompletion.mockResolvedValue(mockGroqResponse);
     verifyResources.mockResolvedValue({ valid: [{ title: "Getting Started Guide", url: "https://example.com/start", type: "article" }], invalid: [] });
+    mockPrisma.w3schoolsLinks.findMany.mockResolvedValue([]);
     mockPrisma.roadmaps.create.mockResolvedValue(mockCreatedRoadmap);
 
     const res = await request(app)

@@ -109,6 +109,7 @@ describe("roadmapService.createRoadmapInDB", () => {
     mockPrisma.analyses.findFirst.mockResolvedValue(mockAnalysis);
     groqChatCompletion.mockResolvedValue(validGroqResponse);
     verifyResources.mockResolvedValue({ valid: [{ title: "Getting Started Guide", url: "https://example.com/start", type: "article" }], invalid: [] });
+    mockPrisma.w3schoolsLinks.findMany.mockResolvedValue([]);
     mockPrisma.roadmaps.create.mockResolvedValue(mockCreatedRoadmap);
 
     const result = await roadmapService.createRoadmapInDB("user-1", {
@@ -125,6 +126,29 @@ describe("roadmapService.createRoadmapInDB", () => {
     );
     expect(groqChatCompletion).toHaveBeenCalled();
     expect(mockPrisma.roadmaps.create).toHaveBeenCalled();
+  });
+
+  it("appends w3schools docs resources to each week", async () => {
+    mockPrisma.analyses.findFirst.mockResolvedValue(mockAnalysis);
+    groqChatCompletion.mockResolvedValue(validGroqResponse);
+    verifyResources.mockResolvedValue({ valid: [], invalid: [] });
+    mockPrisma.w3schoolsLinks.findMany.mockResolvedValue([
+      { title: "Python", url: "https://www.w3schools.com/python/default.asp", topic: "python" },
+      { title: "Docker", url: "https://www.w3schools.com/docker/index.php", topic: "docker" },
+    ]);
+    mockPrisma.roadmaps.create.mockResolvedValue(mockCreatedRoadmap);
+
+    await roadmapService.createRoadmapInDB("user-1", {
+      analysis_id: "analysis-1",
+    });
+
+    const createArg = mockPrisma.roadmaps.create.mock.calls[0][0];
+    const weekResources = createArg.data.weeks.create[0].resources.create;
+    expect(weekResources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: "Python", url: "https://www.w3schools.com/python/default.asp", type: "docs" }),
+      ]),
+    );
   });
 });
 

@@ -1,136 +1,109 @@
-import axios from "axios";
 import { prisma } from "../../lib/prisma.js";
-import AppError from "../../utils/AppError.js";
 import { refreshW3SchoolsCatalog } from "../../jobs/w3schools.job.js";
+import AppError from "../../utils/AppError.js";
 import type { SearchJob, SearchJobsResult } from "./jobs.interface.js";
 
-const REMOTIVE_URL = "https://remotive.com/api/remote-jobs";
-const REMOTIVE_CATEGORY = "software-dev";
-const REQUEST_TIMEOUT_MS = 8_000;
-
-const stripHtml = (html: string = ""): string => {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-};
-
-// Generic role words that don't narrow a search (e.g. "developer" matches
-// nearly every software job). Remotive's `search` also matches descriptions,
-// so after fetching we re-filter on the TITLE only using the remaining,
-// distinctive tokens.
-const TITLE_STOPWORDS = new Set([
-  "a", "an", "the", "and", "or", "of", "for", "in", "on", "with", "to", "at",
-  "it", "job", "jobs", "position", "role", "roles", "opening", "remote",
-  "developer", "developers", "engineer", "engineers", "engineering",
-  "senior", "junior", "staff", "lead", "principal", "software", "web",
-]);
-
-const normalizeForTitle = (value: string): string => {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
-};
+// BDJOBs jobs are scraped into the `bdjobs_jobs` table by a local Selenium
+// crawler (`npm run crawl:bdjobs`). The API only ever reads from the DB so
+// responses are fast and safe on Vercel serverless (no browser available).
+// See src/lib/bdjobs.scraper.ts and src/jobs/crawl-bdjobs.ts.
 
 const tokenizeQuery = (query: string): string[] => {
   return query
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((token) => token.length > 2 && !TITLE_STOPWORDS.has(token));
+    .filter((token) => token.length > 1);
 };
 
-const isTitleRelevant = (title: string, queryTokens: string[]): boolean => {
-  if (queryTokens.length === 0) return true;
+const mapRow = (row: any): SearchJob => ({
+  id: row.id,
+  title: row.title,
+  company: row.company ?? null,
+  location: row.location ?? null,
+  salary: row.salary ?? null,
+  job_type: row.jobType ?? null,
+  publication_date: row.publicationDate
+    ? new Date(row.publicationDate).toISOString()
+    : null,
+  tags: row.category ? [row.category] : [],
+  snippet: (row.description ?? "").slice(0, 200),
+  url: row.url,
+});
 
-  const titleNorm = normalizeForTitle(title);
-
-  // Whole normalized query ("fullstack") or every distinctive token must appear.
-  if (titleNorm.includes(queryTokens.join(""))) return true;
-  return queryTokens.every((token) => titleNorm.includes(token));
-};
-
-const normalizeJob = (raw: Record<string, unknown>): SearchJob => {
-  const id = (raw.id ?? raw.url ?? "") as string;
-  const description = stripHtml((raw.description as string) ?? "");
-  const tags = Array.isArray(raw.tags)
-    ? (raw.tags as unknown[]).filter((t): t is string => typeof t === "string")
-    : [];
-
-  return {
-    id: String(id),
-    title: (raw.title as string) ?? "Untitled",
-    company: (raw.company_name as string) ?? null,
-    location: (raw.candidate_required_location as string) ?? null,
-    salary: (raw.salary as string) ?? null,
-    job_type: (raw.job_type as string) ?? null,
-    publication_date: (raw.publication_date as string) ?? null,
-    tags,
-    snippet: description.slice(0, 200),
-    url: (raw.url as string) ?? "",
-  };
-};
-
-const searchJobsFromRemotive = async (
+const searchBdjobsFromDb = async (
   query: string,
   page: number,
   limit: number,
 ): Promise<SearchJobsResult> => {
-  const params: Record<string, string | number> = {
-    category: REMOTIVE_CATEGORY,
-    page,
-    limit,
-  };
-  if (query.trim()) params.search = query.trim();
+  const tokens = tokenizeQuery(query);
+  const skip = (page - 1) * limit;
 
-  let data: Record<string, unknown>;
+  // One AND-clause per token, each matching across the searchable columns.
+  const baseWhere = tokens.map((token) => ({
+    OR: [
+      { title: { contains: token, mode: "insensitive" as const } },
+      { company: { contains: token, mode: "insensitive" as const } },
+      { location: { contains: token, mode: "insensitive" as const } },
+      { category: { contains: token, mode: "insensitive" as const } },
+    ],
+  }));
+
+  const where = baseWhere.length > 0 ? { AND: baseWhere } : {};
+
   try {
-    const res = await axios.get(REMOTIVE_URL, {
-      params,
-      timeout: REQUEST_TIMEOUT_MS,
-      headers: { "User-Agent": "CareerForgeBD/1.0" },
+    const rows = await prisma.bdjobsJobs.findMany({
+      where,
+      orderBy: [
+        { publicationDate: { sort: "desc", nulls: "last" } },
+        { scrapedAt: "desc" },
+      ],
+      skip,
+      take: limit,
     });
-    data = (res.data ?? {}) as Record<string, unknown>;
+
+    // AND-token matching can be too strict ("data analysis" misses titles that
+    // only contain one of the terms). Fall back to any-token so the user never
+    // sees an empty page.
+    if (rows.length === 0 && baseWhere.length > 1) {
+      const looseRows = await prisma.bdjobsJobs.findMany({
+        where: { OR: baseWhere },
+        orderBy: [{ publicationDate: { sort: "desc", nulls: "last" } }, { scrapedAt: "desc" }],
+        skip,
+        take: limit,
+      });
+      return {
+        jobs: looseRows.map(mapRow),
+        page,
+        limit,
+        total_jobs: 0,
+      };
+    }
+
+    const total = await prisma.bdjobsJobs.count({ where });
+
+    return {
+      jobs: rows.map(mapRow),
+      page,
+      limit,
+      page_count: Math.max(1, Math.ceil(total / limit)),
+      total_jobs: total,
+    };
   } catch (error: any) {
-    await prisma.systemLogs
-      .create({
-        data: {
-          type: "ai_failure",
-          message: error?.message ?? "Remotive request failed",
-          metadata: { stage: "jobs.search", provider: "remotive" },
-        },
-      })
-      .catch(() => {});
     throw new AppError(
-      "Job search is unavailable. Please try again in a moment.",
+      error?.message ?? "Job search is unavailable. Please try again in a moment.",
       502,
     );
   }
-
-  const jobs = Array.isArray(data.jobs) ? (data.jobs as Record<string, unknown>[]) : [];
-  const queryTokens = tokenizeQuery(query);
-
-  const relevantJobs = jobs
-    .map(normalizeJob)
-    .filter((job) => isTitleRelevant(job.title, queryTokens))
-    .slice(0, limit);
-
-  return {
-    jobs: relevantJobs,
-    page,
-    limit,
-    page_count: (data["page-count"] as number) ?? undefined,
-    total_jobs: (data["total-jobs"] as number) ?? undefined,
-  };
 };
 
-const searchJobs = async (query: string, page = 1, limit = 10): Promise<SearchJobsResult> => {
-  const safePage = Math.max(1, page);
-  const safeLimit = Math.min(Math.max(1, limit), 50);
-  return searchJobsFromRemotive(query, safePage, safeLimit);
+const searchJobs = async (
+  query: string,
+  page = 1,
+  limit = 10,
+): Promise<SearchJobsResult> => {
+  const safePage = Math.max(1, Math.floor(page));
+  const safeLimit = Math.min(Math.max(1, Math.floor(limit)), 50);
+  return searchBdjobsFromDb(query, safePage, safeLimit);
 };
 
 export const jobsService = {
