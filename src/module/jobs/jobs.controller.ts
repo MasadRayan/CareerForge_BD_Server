@@ -41,7 +41,33 @@ const refreshW3Schools = async (
   }
 };
 
+const crawl = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const expected = env.CRON_SECRET;
+    const header = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "").trim();
+
+    if (!expected || header !== expected) {
+      throw new AppError("Unauthorized", 401);
+    }
+
+    const { searchTerm, maxPages } = req.body ?? {};
+    if (!searchTerm || typeof searchTerm !== "string") {
+      throw new AppError("searchTerm is required", 400);
+    }
+
+    const result = await jobsService.crawlBdjobs(searchTerm, Number(maxPages) || 3);
+    sendResponse(res, 200, true, `Crawl complete: ${result.saved} jobs saved`, result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const jobsController = {
   searchJobs,
   refreshW3Schools,
+  crawl,
 };

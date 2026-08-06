@@ -1,8 +1,10 @@
 // ─── BdjobsJobs ────────────────────────────────────────────────
-// Snapshot of remote/local roles scraped from bdjobs.com via a local
-// Selenium crawler (`npm run crawl:bdjobs`). The API reads from this
-// table only (no live scraping at request time) so responses stay fast
-// and work on Vercel serverless, where a browser cannot run.
+// Snapshot of roles scraped from bdjobs.com via a local crawler
+// (`npm run crawl:bdjobs`), which hits bdjobs' public JSON API —
+// no Selenium needed (the site is an Angular SPA with no static
+// card selectors). The API reads from this table only (no live
+// scraping at request time) so responses stay fast and work on
+// Vercel serverless, where a browser cannot run.
 
 model BdjobsJobs {
   id               String   @id @default(uuid())
@@ -17,11 +19,13 @@ model BdjobsJobs {
   deadlineDate     DateTime?
   description      String?
   url              String   @unique
+  searchTerm       String?
   scrapedAt        DateTime @default(now())
 
   @@index([title])
   @@index([company])
   @@index([category])
+  @@index([searchTerm])
   @@index([scrapedAt])
   @@map("bdjobs_jobs")
 }

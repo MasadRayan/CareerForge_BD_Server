@@ -1,12 +1,13 @@
 import { prisma } from "../../lib/prisma.js";
 import { refreshW3SchoolsCatalog } from "../../jobs/w3schools.job.js";
+import { scrapeBdjobs } from "../../lib/bdjobs.scraper.js";
 import AppError from "../../utils/AppError.js";
 import type { SearchJob, SearchJobsResult } from "./jobs.interface.js";
 
-// BDJOBs jobs are scraped into the `bdjobs_jobs` table by a local Selenium
-// crawler (`npm run crawl:bdjobs`). The API only ever reads from the DB so
-// responses are fast and safe on Vercel serverless (no browser available).
-// See src/lib/bdjobs.scraper.ts and src/jobs/crawl-bdjobs.ts.
+// BDJOBs jobs are scraped into the `bdjobs_jobs` table by `npm run crawl:bdjobs`
+// (a local crawler that hits bdjobs' public JSON API — see src/lib/bdjobs.scraper.ts).
+// The API only ever reads from the DB so responses are fast and safe on
+// Vercel serverless (no browser available).
 
 const tokenizeQuery = (query: string): string[] => {
   return query
@@ -106,7 +107,66 @@ const searchJobs = async (
   return searchBdjobsFromDb(query, safePage, safeLimit);
 };
 
+const crawlBdjobs = async (
+  searchTerm: string,
+  maxPages = 3,
+): Promise<{ searchTerm: string; saved: number }> => {
+  const result = await scrapeBdjobs(searchTerm, maxPages);
+
+  if (result.entries.length === 0) {
+    throw new AppError("No jobs found for the given search term", 404);
+  }
+
+  const UPSERT_CHUNK = 10;
+  let saved = 0;
+
+  for (let i = 0; i < result.entries.length; i += UPSERT_CHUNK) {
+    const chunk = result.entries.slice(i, i + UPSERT_CHUNK);
+
+    const upserts = chunk.map((entry) =>
+      prisma.bdjobsJobs.upsert({
+        where: { sourceJobId: entry.sourceJobId },
+        create: {
+          sourceJobId: entry.sourceJobId,
+          title: entry.title,
+          company: entry.company,
+          location: entry.location,
+          salary: entry.salary,
+          jobType: entry.jobType,
+          category: entry.category,
+          publicationDate: entry.publicationDate,
+          deadlineDate: entry.deadlineDate,
+          description: entry.description,
+          url: entry.url,
+          searchTerm: entry.searchTerm,
+          scrapedAt: new Date(),
+        },
+        update: {
+          title: entry.title,
+          company: entry.company,
+          location: entry.location,
+          salary: entry.salary,
+          jobType: entry.jobType,
+          category: entry.category,
+          publicationDate: entry.publicationDate,
+          deadlineDate: entry.deadlineDate,
+          description: entry.description,
+          url: entry.url,
+          searchTerm: entry.searchTerm,
+          scrapedAt: new Date(),
+        },
+      }),
+    );
+
+    await prisma.$transaction(upserts, { timeout: 30_000 });
+    saved += chunk.length;
+  }
+
+  return { searchTerm, saved };
+};
+
 export const jobsService = {
   searchJobs,
+  crawlBdjobs,
   refreshW3SchoolsCatalog,
 };
