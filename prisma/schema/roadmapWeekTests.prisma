@@ -1,0 +1,20 @@
+// ─── RoadmapWeekTests ────────────────────────────────────────
+// Per-week test for the roadmap. Questions are AI-generated from the
+// week's topic_summary at roadmap creation time (lazy fallback for
+// legacy roadmaps) and stored as JSON so the test is immutable.
+//
+//   RoadmapWeeks ── 1:1 ── RoadmapWeekTests ──< RoadmapWeekTestAttempts
+
+model RoadmapWeekTests {
+  id             String   @id @default(uuid())
+  roadmap_week_id String   @unique
+  pass_score     Int      @default(60)
+  questions      Json // [{ id, question_text, options:{a,b,c,d}, correct_answer }]
+  created_at     DateTime @default(now())
+
+  roadmapWeek RoadmapWeeks            @relation(fields: [roadmap_week_id], references: [id], onDelete: Cascade)
+  attempts    RoadmapWeekTestAttempts[]
+
+  @@index([roadmap_week_id])
+  @@map("roadmap_week_tests")
+}

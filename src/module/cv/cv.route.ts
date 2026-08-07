@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { cvController } from "./cv.controller";
 import { verifyFBToken } from "../../middleware/verifyFBToken";
+import { verifyAdmin } from "../../middleware/verifyAdmin";
 import { uploadCV } from "../../lib/cv.upload";
 
 const router = Router();
@@ -11,6 +12,7 @@ const router = Router();
 // (5MB cap, PDF/DOCX only) before the controller runs.
 router.post("/", verifyFBToken, uploadCV, cvController.createCV);
 router.get("/", verifyFBToken, cvController.getAllCVs);
+router.get("/all", verifyFBToken, verifyAdmin, cvController.getAllAdminCVs);
 router.get("/:id", verifyFBToken, cvController.getASingleCV);
 router.delete("/:id", verifyFBToken, cvController.deleteASingleCV);
 

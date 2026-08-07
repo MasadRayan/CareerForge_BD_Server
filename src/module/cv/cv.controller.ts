@@ -71,9 +71,27 @@ const deleteASingleCV = async (
   }
 };
 
+const getAllAdminCVs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const page = Number(req.query.page);
+    const limit = Number(req.query.limit);
+    const search = typeof req.query.search === "string" ? req.query.search : undefined;
+
+    const result = await cvService.getAllAdminCVsFromDB({ page, limit, search });
+    sendResponse(res, 200, true, "CVs fetched successfully", result);
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 export const cvController = {
   createCV,
   getAllCVs,
+  getAllAdminCVs,
   getASingleCV,
   deleteASingleCV,
 };

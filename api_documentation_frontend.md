@@ -407,6 +407,56 @@ Get all CVs for the authenticated user (list view, no `raw_text`).
 
 ---
 
+### `GET /api/cv/all`
+Get all CVs across all users (paginated, searchable). Admin-only.
+
+**Auth:** Firebase Token + Admin role required
+
+**Query Params:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `search` | string | — | Filter by user name or user email (case-insensitive partial match) |
+| `page` | number | 1 | |
+| `limit` | number | 10 | Max 50 |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "CVs fetched successfully",
+  "data": {
+    "cvs": [
+      {
+        "id": "uuid",
+        "user_id": "uuid",
+        "version_number": 1,
+        "file_url": "https://res.cloudinary.com/...",
+        "uploaded_at": "2026-07-29T10:00:00.000Z",
+        "user": {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "photoURL": "https://..."
+        }
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 10,
+      "totalItems": 120,
+      "totalPages": 12,
+      "hasNextPage": true,
+      "hasPreviousPage": false
+    }
+  }
+}
+```
+
+> **Note:** `raw_text` is omitted from the list view. Order is by `uploaded_at` descending.
+
+---
+
 ### `GET /api/cv/:id`
 Get a single CV by ID (includes `raw_text`).
 
@@ -603,6 +653,8 @@ Generate an AI-powered learning roadmap based on an analysis.
         "topic_summary": "React Fundamentals & TypeScript",
         "start_date": "2026-07-29T00:00:00.000Z",
         "end_date": "2026-08-04T23:59:59.999Z",
+        "is_unlocked": true,
+        "unlocked_at": "2026-07-29T10:00:00.000Z",
         "resources": [
           {
             "id": "uuid",
@@ -742,6 +794,234 @@ Delete a roadmap.
   "message": "Roadmap deleted successfully"
 }
 ```
+
+---
+
+## Roadmap Test System (`/api/roadmap`)
+
+**Auth:** All endpoints require Firebase Token
+
+The roadmap is gated by a two-step test system:
+
+1. **Weekly tests** — each week has a 5-question MCQ test. Week 1 is unlocked by default. To unlock week *N+1* you must complete **all daily tasks** of week *N* **and pass** week *N*'s test with **≥ 60%**. Retakes are unlimited until you pass (re-submitting after passing returns a `409`).
+2. **Final exam** — once every weekly test has been passed, a 30-question cumulative exam becomes available. Passing it (≥ 60%) sets the roadmap `status` to `completed` (certificate generation comes later).
+
+Questions are AI-generated per week from the week's topic and are returned **without** the correct answers. The correct answer is only revealed in the submit response.
+
+---
+
+### `GET /api/roadmap/:roadmapId/weeks/:weekId/test`
+Fetch the weekly test questions for a specific week.
+
+**Path Params:**
+- `roadmapId` — roadmap UUID
+- `weekId` — roadmap week UUID
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Week 1 test fetched successfully",
+  "data": {
+    "test_id": "uuid",
+    "week_number": 1,
+    "pass_score": 60,
+    "already_passed": false,
+    "questions": [
+      {
+        "id": "uuid",
+        "question_text": "What does REST stand for in web development?",
+        "options": {
+          "a": "Remote Execution of Shared Tasks",
+          "b": "Representational State Transfer",
+          "c": "Reliable Endpoint Service Technology",
+          "d": "Resource Encoding and Serialisation Technology"
+        },
+        "difficulty": "easy"
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+- `403` — `Week N is locked. Pass the previous week's test to unlock it.`
+- `409` — `Complete all daily tasks for this week before taking its test`
+
+---
+
+### `POST /api/roadmap/:roadmapId/weeks/:weekId/test/submit`
+Submit answers for a weekly test and get the graded result.
+
+**Path Params:**
+- `roadmapId` — roadmap UUID
+- `weekId` — roadmap week UUID
+
+**Request Body:**
+
+```json
+{
+  "answers": [
+    { "question_id": "uuid-of-q1", "selected_answer": "b" },
+    { "question_id": "uuid-of-q2", "selected_answer": "c" }
+  ]
+}
+```
+
+`answers` must contain exactly as many entries as the test's question count (5). `selected_answer` is one of `a | b | c | d`.
+
+**Success Response (200) — passed (next week unlocked):**
+
+```json
+{
+  "success": true,
+  "message": "Test passed with 80%. Week 2 unlocked.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 80,
+    "passed": true,
+    "correct_count": 4,
+    "total_questions": 5,
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "b", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "c", "is_correct": false }
+    ],
+    "next_unlocked_week": 2
+  }
+}
+```
+
+**Success Response (200) — passed (last week, final exam now available):**
+
+```json
+{
+  "success": true,
+  "message": "Test passed with 80%. Final exam now available.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 80,
+    "passed": true,
+    "correct_count": 4,
+    "total_questions": 5,
+    "answers": []
+  }
+}
+```
+
+**Success Response (200) — failed (no unlock, retry allowed):**
+
+```json
+{
+  "success": true,
+  "message": "Test failed with 40%. Passing score is 60%.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 40,
+    "passed": false,
+    "correct_count": 2,
+    "total_questions": 5,
+    "answers": []
+  }
+}
+```
+
+**Errors:**
+- `409` — `Test already passed`
+- `400` — `Answer count must match the test size (5)`
+
+---
+
+### `GET /api/roadmap/:roadmapId/final-exam`
+Fetch the final exam questions (30 questions across the whole roadmap).
+
+**Path Params:**
+- `roadmapId` — roadmap UUID
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Final exam fetched successfully",
+  "data": {
+    "exam_id": "uuid",
+    "roadmap_id": "uuid",
+    "pass_score": 60,
+    "already_passed": false,
+    "questions": [
+      {
+        "id": "uuid",
+        "question_text": "Question text here",
+        "options": { "a": "...", "b": "...", "c": "...", "d": "..." },
+        "difficulty": "medium"
+      }
+    ]
+  }
+}
+```
+
+**Error:** `403` — `Complete and pass every weekly test before attempting the final exam`
+
+---
+
+### `POST /api/roadmap/:roadmapId/final-exam/submit`
+Submit answers for the final exam.
+
+**Path Params:**
+- `roadmapId` — roadmap UUID
+
+**Request Body:**
+
+```json
+{
+  "answers": [
+    { "question_id": "uuid-of-q1", "selected_answer": "b" },
+    { "question_id": "uuid-of-q2", "selected_answer": "a" }
+  ]
+}
+```
+
+`answers` must contain exactly 30 entries. `selected_answer` is one of `a | b | c | d`.
+
+**Success Response (200) — passed (roadmap completed):**
+
+```json
+{
+  "success": true,
+  "message": "Congratulations! You passed the final exam. Roadmap completed.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 90,
+    "passed": true,
+    "correct_count": 27,
+    "total_questions": 30,
+    "answers": [],
+    "roadmap_completed": true
+  }
+}
+```
+
+**Success Response (200) — failed:**
+
+```json
+{
+  "success": true,
+  "message": "Final exam failed with 50%. Passing score is 60%.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 50,
+    "passed": false,
+    "correct_count": 15,
+    "total_questions": 30,
+    "answers": []
+  }
+}
+```
+
+**Errors:**
+- `409` — `Final exam already passed`
+- `400` — `Answer count must match the exam size (30)`
 
 ---
 

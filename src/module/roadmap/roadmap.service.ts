@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma.js";
 import AppError from "../../utils/AppError.js";
+import { extractJsonObject } from "../../utils/extractJsonObject.js";
 import { groqChatCompletion } from "../../config/groq.js";
 import { verifyResources } from "../../lib/urlValidator.js";
 import { getFallbackUrl } from "../../lib/searchFallback.js";
@@ -15,40 +16,9 @@ import {
   type GroqRoadmapResponse,
   type UpdateRoadmapStatusPayload,
 } from "./roadmap.interface.js";
+import { roadmapTestService } from "./roadmap.test.service.js";
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-
-const extractJsonObject = (raw: string): unknown => {
-  const cleaned = raw.trim();
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // fall through
-  }
-
-  const fenced = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) {
-    try {
-      return JSON.parse(fenced[1].trim());
-    } catch {
-      // fall through
-    }
-  }
-
-  const firstBrace = cleaned.indexOf("{");
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    try {
-      return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-    } catch {
-      // fall through
-    }
-  }
-
-  throw new AppError("AI returned a non-JSON response", 502);
-};
 
 
 const applyResourceFallbacks = async (
@@ -317,6 +287,8 @@ const createRoadmapInDB = async (
             topic_summary: week.topic_summary,
             start_date: start,
             end_date: end,
+            is_unlocked: week.week_number === 1,
+            unlocked_at: week.week_number === 1 ? new Date() : undefined,
             resources: {
               create: week.resources.map((r) => ({
                 title: r.title,
@@ -338,6 +310,14 @@ const createRoadmapInDB = async (
       },
     },
   });
+
+  // Generate weekly tests + final exam in the background (non-fatal).
+  // Any failed generation is lazy-regenerated on the first test GET.
+  void roadmapTestService.generateTestsForRoadmap(
+    roadmap.id,
+    roadmap.weeks,
+    (analysis.gap_skills as string[]) ?? [],
+  );
 
   return roadmap;
 };

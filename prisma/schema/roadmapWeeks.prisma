@@ -11,10 +11,13 @@ model RoadmapWeeks {
   topic_summary String
   start_date    DateTime?
   end_date      DateTime?
+  is_unlocked   Boolean   @default(false)
+  unlocked_at   DateTime?
 
-  roadmap    Roadmaps     @relation(fields: [roadmap_id], references: [id], onDelete: Cascade)
+  roadmap    Roadmaps                 @relation(fields: [roadmap_id], references: [id], onDelete: Cascade)
   resources  Resources[]
   dailyTasks DailyTasks[]
+  weekTest   RoadmapWeekTests?
 
   @@index([roadmap_id])
   @@map("roadmap_weeks")

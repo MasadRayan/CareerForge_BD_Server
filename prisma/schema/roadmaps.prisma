@@ -13,9 +13,10 @@ model Roadmaps {
   status         RoadmapStatus @default(active)
   created_at     DateTime      @default(now())
 
-  analysis Analyses       @relation(fields: [analysis_id], references: [id], onDelete: Cascade)
-  user     Users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  weeks    RoadmapWeeks[]
+  analysis   Analyses           @relation(fields: [analysis_id], references: [id], onDelete: Cascade)
+  user       Users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  weeks      RoadmapWeeks[]
+  finalExam  RoadmapFinalExams?
 
   @@index([analysis_id])
   @@index([user_id])

@@ -1,0 +1,20 @@
+// ─── RoadmapWeekTestAttempts ─────────────────────────────────
+// A user's submission for a weekly roadmap test. Graded server-side;
+// a passed attempt unlocks the next roadmap week.
+
+model RoadmapWeekTestAttempts {
+  id                  String   @id @default(uuid())
+  user_id             String
+  roadmap_week_test_id String
+  score               Int
+  passed              Boolean
+  answers             Json // [{ question_id, selected_answer, is_correct }]
+  attempted_at        DateTime @default(now())
+
+  user       Users             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  weekTest   RoadmapWeekTests  @relation(fields: [roadmap_week_test_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([roadmap_week_test_id])
+  @@map("roadmap_week_test_attempts")
+}

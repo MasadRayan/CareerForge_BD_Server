@@ -24,9 +24,11 @@ model Users {
   quizAttempts      QuizAttempts[]
   codeSubmissions   CodeSubmissions[]
   behavioralAnswers BehavioralAnswers[]
-  readinessScores   ReadinessScores[]
-  usageQuota        UsageQuotas?
-  reportedIssues    ReportedIssues[]
+  readinessScores          ReadinessScores[]
+  usageQuota               UsageQuotas?
+  reportedIssues           ReportedIssues[]
+  roadmapWeekTestAttempts  RoadmapWeekTestAttempts[]
+  roadmapFinalExamAttempts RoadmapFinalExamAttempts[]
 
   @@map("users")
 }

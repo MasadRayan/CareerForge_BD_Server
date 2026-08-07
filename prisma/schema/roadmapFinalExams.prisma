@@ -1,0 +1,18 @@
+// ─── RoadmapFinalExams ───────────────────────────────────────
+// Big cumulative exam covering the whole roadmap. AI-generated from
+// every week's topic_summary at roadmap creation time (lazy fallback
+// for legacy roadmaps). Passing marks the roadmap as completed.
+
+model RoadmapFinalExams {
+  id         String   @id @default(uuid())
+  roadmap_id String   @unique
+  pass_score Int      @default(60)
+  questions  Json // [{ id, question_text, options:{a,b,c,d}, correct_answer }]
+  created_at DateTime @default(now())
+
+  roadmap  Roadmaps                    @relation(fields: [roadmap_id], references: [id], onDelete: Cascade)
+  attempts RoadmapFinalExamAttempts[]
+
+  @@index([roadmap_id])
+  @@map("roadmap_final_exams")
+}

@@ -1,0 +1,20 @@
+// ─── RoadmapFinalExamAttempts ────────────────────────────────
+// A user's submission for the roadmap final exam. Passing sets the
+// roadmap status to `completed` (hook for future certificate PDF).
+
+model RoadmapFinalExamAttempts {
+  id                    String   @id @default(uuid())
+  user_id               String
+  roadmap_final_exam_id String
+  score                 Int
+  passed                Boolean
+  answers               Json // [{ question_id, selected_answer, is_correct }]
+  attempted_at          DateTime @default(now())
+
+  user     Users             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  finalExam RoadmapFinalExams @relation(fields: [roadmap_final_exam_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([roadmap_final_exam_id])
+  @@map("roadmap_final_exam_attempts")
+}

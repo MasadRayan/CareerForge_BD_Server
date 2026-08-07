@@ -1,3 +1,4 @@
+import { Prisma } from "../../../generated/prisma/client";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../utils/AppError";
 import { parseCVText } from "../../lib/cv.parser";
@@ -88,6 +89,67 @@ const getAllCVsFromDB = async (userId: string) => {
   return cvs;
 };
 
+const getAllAdminCVsFromDB = async ({
+  page,
+  limit,
+  search,
+}: {
+  page?: number
+  limit?: number
+  search?: string
+}) => {
+  const safePage = Math.max(1, Number(page) || 1)
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 10))
+
+  const where: Prisma.CVsWhereInput =
+    search && search.trim().length > 0
+      ? {
+          OR: [
+            { user: { name: { contains: search.trim(), mode: 'insensitive' } } },
+            { user: { email: { contains: search.trim(), mode: 'insensitive' } } },
+          ],
+        }
+      : {}
+
+  const [cvs, totalItems] = await Promise.all([
+    prisma.cVs.findMany({
+      where,
+      orderBy: { uploaded_at: 'desc' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+      select: {
+        id: true,
+        user_id: true,
+        version_number: true,
+        file_url: true,
+        uploaded_at: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+            photoURL: true,
+          },
+        },
+      },
+    }),
+    prisma.cVs.count({ where }),
+  ])
+
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / safeLimit)
+
+  return {
+    cvs,
+    pagination: {
+      currentPage: safePage,
+      limit: safeLimit,
+      totalItems,
+      totalPages,
+      hasNextPage: safePage < totalPages,
+      hasPreviousPage: safePage > 1,
+    },
+  }
+}
+
 const getASingleCV = async (userId: string, id: string) => {
   const cv = await prisma.cVs.findFirst({
     where: { id, user_id: userId },
@@ -118,6 +180,7 @@ const deleteCVFromDB = async (userId: string, id: string) => {
 export const cvService = {
   createCVInDB,
   getAllCVsFromDB,
+  getAllAdminCVsFromDB,
   getASingleCV,
   deleteCVFromDB,
 };
