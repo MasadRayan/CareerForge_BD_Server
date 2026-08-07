@@ -15,6 +15,7 @@ import { notificationRouter } from './module/notification/notification.route.js'
 import { subscriptionRouter } from './module/payment/payment.route.js';
 import { analyticsRouter } from './module/analytics/analytics.route.js';
 import { jobsRouter } from './module/jobs/jobs.route.js';
+import { certificateRouter } from './module/certificate/certificate.route.js';
 import globalHandler from './middleware/globalErrorHandler.js';
 import limiter from './middleware/ratelimit.js';
 
@@ -73,6 +74,7 @@ app.use("/api/notifications", notificationRouter)
 app.use("/api/subscription", subscriptionRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/jobs", jobsRouter);
+app.use("/api/certificate", certificateRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({

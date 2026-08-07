@@ -29,6 +29,8 @@ model Users {
   reportedIssues           ReportedIssues[]
   roadmapWeekTestAttempts  RoadmapWeekTestAttempts[]
   roadmapFinalExamAttempts RoadmapFinalExamAttempts[]
+  skillTestAttempts        SkillTestAttempts[]
+  certificates             Certificates[]
 
   @@map("users")
 }

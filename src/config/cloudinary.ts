@@ -1,5 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-import env from "./env";
+import env from "./env.js";
 
 
 cloudinary.config({
@@ -25,6 +25,28 @@ export const uploadCVBuffer = async (
       (error, result) => {
         if (error || !result) {
           return reject(error ?? new Error("Cloudinary upload failed"));
+        }
+        resolve(result.secure_url);
+      },
+    );
+    uploadStream.end(buffer);
+  });
+};
+
+export const uploadCertificateBuffer = async (
+  buffer: Buffer,
+  publicId: string,
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "raw",
+        folder: "certificates",
+        public_id: publicId,
+      },
+      (error, result) => {
+        if (error || !result) {
+          return reject(error ?? new Error("Cloudinary certificate upload failed"));
         }
         resolve(result.secure_url);
       },

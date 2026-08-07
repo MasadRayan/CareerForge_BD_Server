@@ -1,0 +1,21 @@
+// ─── Certificates ─────────────────────────────────────────────
+// A verified skill certificate issued after passing the AI test.
+// cert_number is a short human-shareable verification code.
+
+model Certificates {
+  id                   String   @id @default(uuid())
+  user_id              String
+  skill                String
+  score                Int
+  cert_number          String   @unique
+  pdf_url              String
+  skill_test_attempt_id String?  @unique
+  issued_at            DateTime @default(now())
+
+  user     Users             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  attempt  SkillTestAttempts? @relation(fields: [skill_test_attempt_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([skill])
+  @@map("certificates")
+}

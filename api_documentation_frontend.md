@@ -1,6 +1,6 @@
 # CareerForge BD — API Documentation
 
-> **Base URL:** `http://localhost:8000`  
+> **Base URL:** `http://localhost:3000` (configurable via `PORT` in `.env`; default `5000`)  
 > **Auth:** Most endpoints require `Authorization: Bearer <Firebase ID Token>`  
 > **Content-Type:** `application/json` (except CV upload which is `multipart/form-data`)
 
@@ -68,14 +68,14 @@ Create a new user account (called after Firebase Auth sign-up).
 }
 ```
 
-**Error (400):** `{ "success": false, "message": "User already exists" }`
+**Note:** If the email already exists, the endpoint does **not** error — it returns `201` with the existing user record (idempotent sync).
 
 ---
 
 ### `GET /api/users/role`
 Get the current authenticated user's role.
 
-**Auth:** None (uses query param? no, actually no auth. Let me check — controller uses `req.user!.id` but there's no middleware. **Note:** This may be broken — it tries to access `req.user.id` but no `verifyFBToken` middleware. Currently returns error.)
+**Auth:** None in the route — ⚠️ **currently broken.** The controller reads `req.user.id` but no `verifyFBToken` middleware is mounted, so `req.user` is `undefined` and the endpoint throws a `500`. Fix pending; do not rely on it yet.
 
 ---
 
@@ -213,19 +213,29 @@ Get all users (paginated).
 {
   "success": true,
   "message": "Users fetched successfully",
-  "data": [
-    {
-      "id": "uuid",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "role": "free_user",
-      "photoURL": "",
-      "target_role": "fullstack",
-      "experience_level": "mid",
-      "created_at": "2026-07-29T10:00:00.000Z",
-      "updated_at": "2026-07-29T10:00:00.000Z"
+  "data": {
+    "users": [
+      {
+        "id": "uuid",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "role": "free_user",
+        "photoURL": "",
+        "target_role": "fullstack",
+        "experience_level": "mid",
+        "created_at": "2026-07-29T10:00:00.000Z",
+        "updated_at": "2026-07-29T10:00:00.000Z"
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "limit": 10,
+      "totalItems": 120,
+      "totalPages": 12,
+      "hasNextPage": true,
+      "hasPreviousPage": false
     }
-  ]
+  }
 }
 ```
 
@@ -494,6 +504,31 @@ Delete a CV.
   "message": "CV deleted successfully"
 }
 ```
+
+---
+
+### `POST /api/cv/:id/skills`
+Extract skills from a CV using AI (Groq). The result is not auto-saved — the frontend is expected to persist it onto the user's profile.
+
+**Path Params:** `id` — CV UUID
+
+**Request Body:** None
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Skills extracted successfully",
+  "data": {
+    "skills": ["React", "TypeScript", "Node.js", "Docker", "AWS"]
+  }
+}
+```
+
+**Errors:**
+- `404` — `CV not found`
+- `502` — `AI service is unavailable. Please try again in a moment.`
 
 ---
 
@@ -904,7 +939,10 @@ Submit answers for a weekly test and get the graded result.
     "passed": true,
     "correct_count": 4,
     "total_questions": 5,
-    "answers": []
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "a", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "c", "is_correct": false }
+    ]
   }
 }
 ```
@@ -921,7 +959,10 @@ Submit answers for a weekly test and get the graded result.
     "passed": false,
     "correct_count": 2,
     "total_questions": 5,
-    "answers": []
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "b", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "d", "is_correct": false }
+    ]
   }
 }
 ```
@@ -996,7 +1037,10 @@ Submit answers for the final exam.
     "passed": true,
     "correct_count": 27,
     "total_questions": 30,
-    "answers": [],
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "b", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "a", "is_correct": true }
+    ],
     "roadmap_completed": true
   }
 }
@@ -1014,7 +1058,10 @@ Submit answers for the final exam.
     "passed": false,
     "correct_count": 15,
     "total_questions": 30,
-    "answers": []
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "b", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "a", "is_correct": false }
+    ]
   }
 }
 ```
@@ -1690,7 +1737,337 @@ Get admin-level analytics (requires admin role).
 
 ---
 
+## Skill Certificates (`/api/certificate`)
+
+**Auth:** All endpoints require Firebase Token, except `GET /verify/:certNumber` which is public.
+
+Users can earn a certificate for any skill in their profile (`Users.skills`). The flow:
+
+1. **Start a test** — `POST /api/certificate/test` with a profile skill. The server AI-generates **10 multiple-choice questions** specific to that skill (returned **without** answers).
+2. **Submit** — `POST /api/certificate/test/:attemptId/submit` with the user's answers. The server grades them and, if the score is **≥ 60%**, generates a PDF certificate (branded A4 landscape), uploads it to Cloudinary, and returns its URL + a unique verification code.
+3. **Share / verify** — anyone can verify a certificate via its code without auth.
+
+Rules:
+- Only skills present in the user's profile can be certified (`403` otherwise).
+- A failed attempt is saved (no certificate) and can be retried with a fresh attempt.
+- An already-submitted attempt cannot be re-submitted (`409`).
+
+---
+
+### `POST /api/certificate/test`
+Start a skill test. Generates 10 AI questions for the given skill.
+
+**Request Body:**
+
+```json
+{
+  "skill": "React"
+}
+```
+
+**Success Response (201):**
+
+```json
+{
+  "success": true,
+  "message": "Skill test generated successfully",
+  "data": {
+    "attempt_id": "uuid",
+    "skill": "React",
+    "pass_score": 60,
+    "questions": [
+      {
+        "id": "uuid",
+        "question_text": "What is the virtual DOM in React?",
+        "options": {
+          "a": "A direct copy of the real DOM",
+          "b": "A lightweight JavaScript representation of the DOM",
+          "c": "A browser API for DOM manipulation",
+          "d": "A CSS framework"
+        },
+        "difficulty": "medium"
+      }
+    ]
+  }
+}
+```
+
+> **Note:** `correct_answer` is intentionally omitted. It is only revealed in the submit response.
+
+**Errors:**
+- `403` — `This skill is not in your profile. Only profile skills can be certified.`
+- `502` — `AI service was unable to prepare this test. Please try again in a moment.`
+
+---
+
+### `POST /api/certificate/test/:attemptId/submit`
+Submit answers for a skill test and get the graded result. Issues a certificate on pass.
+
+**Path Params:** `attemptId` — skill test attempt UUID (from the start response)
+
+**Request Body:**
+
+```json
+{
+  "answers": [
+    { "question_id": "uuid-of-q1", "selected_answer": "b" },
+    { "question_id": "uuid-of-q2", "selected_answer": "c" }
+  ]
+}
+```
+
+`answers` must contain exactly as many entries as the test's question count (10). `selected_answer` is one of `a | b | c | d`.
+
+**Success Response (200) — passed (certificate issued):**
+
+```json
+{
+  "success": true,
+  "message": "Test passed. Certificate issued.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 80,
+    "passed": true,
+    "correct_count": 8,
+    "total_questions": 10,
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "b", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "c", "is_correct": false }
+    ],
+    "certificate": {
+      "id": "uuid",
+      "skill": "React",
+      "score": 80,
+      "cert_number": "CFC-8F3A92B4",
+      "pdf_url": "https://res.cloudinary.com/.../certificates/cert-<attemptId>.pdf",
+      "issued_at": "2026-08-07T14:00:00.000Z"
+    }
+  }
+}
+```
+
+**Success Response (200) — failed (no certificate, retry allowed):**
+
+```json
+{
+  "success": true,
+  "message": "Test failed with 40%. Passing score is 60%.",
+  "data": {
+    "attempt_id": "uuid",
+    "score": 40,
+    "passed": false,
+    "correct_count": 4,
+    "total_questions": 10,
+    "answers": [
+      { "question_id": "uuid-of-q1", "selected_answer": "b", "is_correct": true },
+      { "question_id": "uuid-of-q2", "selected_answer": "c", "is_correct": false }
+    ]
+  }
+}
+```
+
+**Errors:**
+- `404` — `Attempt not found or not owned by you`
+- `409` — `This test has already been submitted`
+- `400` — `Answer count must match the test size (10)`
+- `400` — `Question <id> does not belong to this test`
+
+---
+
+### `GET /api/certificate`
+List all certificates issued to the authenticated user (newest first).
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Certificates fetched successfully",
+  "data": [
+    {
+      "id": "uuid",
+      "skill": "React",
+      "score": 80,
+      "cert_number": "CFC-8F3A92B4",
+      "pdf_url": "https://res.cloudinary.com/...",
+      "issued_at": "2026-08-07T14:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/certificate/:id`
+Get a single certificate owned by the authenticated user.
+
+**Path Params:** `id` — certificate UUID
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Certificate fetched successfully",
+  "data": {
+    "id": "uuid",
+    "skill": "React",
+    "score": 80,
+    "cert_number": "CFC-8F3A92B4",
+    "pdf_url": "https://res.cloudinary.com/...",
+    "issued_at": "2026-08-07T14:00:00.000Z"
+  }
+}
+```
+
+**Error (404):** `{ "success": false, "message": "Certificate not found or not owned by you" }`
+
+---
+
+### `GET /api/certificate/verify/:certNumber`
+Publicly verify a certificate by its verification code (no auth required).
+
+**Path Params:** `certNumber` — certificate verification code (e.g. `CFC-8F3A92B4`)
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Certificate verified successfully",
+  "data": {
+    "valid": true,
+    "holder_name": "John Doe",
+    "skill": "React",
+    "score": 80,
+    "issued_at": "2026-08-07T14:00:00.000Z"
+  }
+}
+```
+
+**Error (404):** `{ "success": false, "message": "Certificate not found" }`
+
+---
+
+## Jobs (`/api/jobs`)
+
+**Auth:** `GET /search` requires Firebase Token. `POST /refresh-w3schools` and `POST /crawl` are **cron/admin-only** and are authenticated with the `CRON_SECRET` (sent as `Authorization: Bearer <CRON_SECRET>`), not a Firebase token.
+
+### `GET /api/jobs/search`
+Search jobs scraped into the local database (from BDJobs and W3Schools catalog). Hits the DB only — no browser/scraping at request time.
+
+**Query Params:**
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `q` | string | — | Search text (tokenized full-text match on title/company/location/category) |
+| `page` | number | 1 | |
+| `limit` | number | 10 | Max 50 |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Jobs fetched successfully",
+  "data": {
+    "jobs": [
+      {
+        "id": "uuid",
+        "title": "Senior React Developer (Dhaka)",
+        "company": "Example Ltd",
+        "location": "Dhaka, Bangladesh",
+        "salary": "Negotiable",
+        "job_type": "Full-time",
+        "publication_date": "2026-07-28T00:00:00.000Z",
+        "tags": ["software"],
+        "snippet": "We are looking for a senior React developer ...",
+        "url": "https://www.bdjobs.com/jobdetails/xyz"
+      }
+    ],
+    "page": 1,
+    "limit": 10,
+    "page_count": 12,
+    "total_jobs": 118
+  }
+}
+```
+
+**Error (502):** `Job search is unavailable. Please try again in a moment.`
+
+---
+
+### `POST /api/jobs/refresh-w3schools`
+Refresh the W3Schools skill/reference catalog.
+
+**Auth:** `Authorization: Bearer <CRON_SECRET>`
+
+**Request Body:** None
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "W3Schools catalog refreshed (250 links)",
+  "data": { "count": 250 }
+}
+```
+
+**Error (401):** `{ "success": false, "message": "Unauthorized" }`
+
+---
+
+### `POST /api/jobs/crawl`
+Trigger a BDJobs crawl for a search term.
+
+**Auth:** `Authorization: Bearer <CRON_SECRET>`
+
+**Request Body:**
+
+```json
+{
+  "searchTerm": "react developer",
+  "maxPages": 3
+}
+```
+
+`searchTerm` is required; `maxPages` is optional (default 3).
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Crawl complete: 45 jobs saved",
+  "data": { "saved": 45 }
+}
+```
+
+**Errors:**
+- `401` — `{ "success": false, "message": "Unauthorized" }`
+- `400` — `{ "success": false, "message": "searchTerm is required" }`
+
+---
+
 ## Health Check
+
+### `GET /`
+Root endpoint — returns service metadata.
+
+**Auth:** None
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "CareerForge BD API is running",
+  "author": "masad Rayan",
+  "timestamp": "2026-07-29T10:00:00.000Z"
+}
+```
+
+---
 
 ### `GET /health`
 Check API health status.

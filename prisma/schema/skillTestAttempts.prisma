@@ -1,0 +1,25 @@
+// ─── SkillTestAttempts ───────────────────────────────────────
+// A user's attempt on an AI-generated per-skill certification test.
+// Questions are snapshotted as JSON at start time so grading is
+// deterministic. A passed attempt is what unlocks a certificate.
+
+model SkillTestAttempts {
+  id           String    @id @default(uuid())
+  user_id      String
+  skill        String
+  pass_score   Int       @default(60)
+  questions    Json // [{ id, question_text, options:{a,b,c,d}, correct_answer, difficulty }]
+  score        Int?
+  passed       Boolean   @default(false)
+  answers      Json? // [{ question_id, selected_answer, is_correct }]
+  created_at   DateTime  @default(now())
+  submitted_at DateTime?
+
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  certificate Certificates?
+
+  @@index([user_id])
+  @@index([skill])
+  @@map("skill_test_attempts")
+}
