@@ -32,7 +32,7 @@ OUTPUT SCHEMA (strict JSON — no commentary, no markdown fences):
     {
       "question_text": <string>,
       "options": { "a": <string>, "b": <string>, "c": <string>, "d": <string> },
-      "correct_answer": "a" | "b" | "c" | "d",
+      "correct_answer": <exact full text of the correct option>,
       "difficulty": "easy" | "medium" | "hard"
     }
   ]
@@ -42,7 +42,10 @@ RULES:
 - Output EXACTLY 5 questions, roughly 1 easy, 2 medium, 2 hard.
 - Questions must be answerable from the week's topic and resources alone.
 - Options must be plausible; exactly one is correct.
-- correct_answer must be one of "a", "b", "c", "d".
+- CRITICAL: "correct_answer" must be the EXACT full text of one of the four
+  options you wrote (verbatim, including punctuation). Do NOT use option
+  letters (a/b/c/d). Never write the correct answer text anywhere except as
+  both one of the options AND "correct_answer".
 - Do not repeat questions.
 
 Return ONLY valid JSON. No explanation, no markdown fences.
@@ -76,7 +79,7 @@ OUTPUT SCHEMA (strict JSON — no commentary, no markdown fences):
     {
       "question_text": <string>,
       "options": { "a": <string>, "b": <string>, "c": <string>, "d": <string> },
-      "correct_answer": "a" | "b" | "c" | "d",
+      "correct_answer": <exact full text of the correct option>,
       "difficulty": "easy" | "medium" | "hard"
     }
   ]
@@ -86,7 +89,10 @@ RULES:
 - Output EXACTLY 30 questions. Include a healthy mix of difficulties.
 - Questions must be answerable from the roadmap topics above.
 - Options must be plausible; exactly one is correct.
-- correct_answer must be one of "a", "b", "c", "d".
+- CRITICAL: "correct_answer" must be the EXACT full text of one of the four
+  options you wrote (verbatim, including punctuation). Do NOT use option
+  letters (a/b/c/d). Never write the correct answer text anywhere except as
+  both one of the options AND "correct_answer".
 - Do not repeat questions.
 
 Return ONLY valid JSON. No explanation, no markdown fences.

@@ -16,67 +16,148 @@ import {
 
 const WEEK_TEST_QUESTION_COUNT = 5;
 const FINAL_EXAM_QUESTION_COUNT = 30;
-const MAX_CONCURRENT_GENERATIONS = 3;
+const MAX_CONCURRENT_GENERATIONS = 2;
+const MAX_GENERATION_ATTEMPTS = 3;
+const MIN_COHERENT_QUESTIONS = 3;
+const RATE_LIMIT_BACKOFF_MS = 2500;
 
 // ─── AI question generation ───────────────────────────────────
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The model is asked to return `correct_answer` as the exact option TEXT
+ * (more reliable than it typing a letter). Resolve that back to an option
+ * letter so grading against what the user sees is always consistent.
+ *
+ * Handles three cases:
+ *  - the value is already a letter (a/b/c/d)  → accept it
+ *  - the value exactly matches one option      → use that option's letter
+ *  - a fuzzy (one-sided contains) match        → use that option's letter
+ * Returns null when no option can be determined (question is dropped, not fatal).
+ */
+const normalizeText = (s: string): string =>
+  s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[「"«"'’`”]+/g, "")
+    .replace(/[\.,;:!?]+$/g, "")
+    .replace(/\s+$/g, "");
+
+const resolveCorrectLetter = (
+  options: { a: string; b: string; c: string; d: string },
+  correctAnswer: string,
+): "a" | "b" | "c" | "d" | null => {
+  const raw = correctAnswer.trim().toLowerCase();
+
+  // 1) model fell back to a letter → trust it
+  if (["a", "b", "c", "d"].includes(raw)) {
+    return raw as "a" | "b" | "c" | "d";
+  }
+
+  const norm = normalizeText(correctAnswer);
+
+  // 2) exact normalized match
+  const exact = (["a", "b", "c", "d"] as const).filter(
+    (k) => normalizeText(options[k]) === norm,
+  );
+  if (exact.length === 1) return exact[0];
+
+  // 3) fuzzy match — the model's answer is a faithful substring/prefix
+  //    of exactly one option (requires enough text to be meaningful).
+  const fuzzy = (["a", "b", "c", "d"] as const).filter((k) => {
+    const option = normalizeText(options[k]);
+    return (
+      option.length >= 6 &&
+      (option.includes(norm) || norm.length >= 6 && norm.includes(option))
+    );
+  });
+  if (fuzzy.length === 1) return fuzzy[0];
+
+  return null;
+};
+
+const isRateLimited = (error: unknown): boolean =>
+  /429|rate ?limit/i.test(error instanceof Error ? error.message : String(error));
+
+const toStoredQuestions = (
+  questions: {
+    question_text: string;
+    options: { a: string; b: string; c: string; d: string };
+    correct_answer: string;
+    difficulty?: "easy" | "medium" | "hard";
+  }[],
+): StoredTestQuestion[] => {
+  const stored: StoredTestQuestion[] = [];
+  for (const q of questions) {
+    const correct_answer = resolveCorrectLetter(q.options, q.correct_answer);
+    if (!correct_answer) continue; // drop incoherent questions, keep the rest
+    stored.push({
+      id: randomUUID(),
+      question_text: q.question_text,
+      options: q.options,
+      correct_answer,
+      difficulty: q.difficulty,
+    });
+  }
+  return stored;
+};
 
 const callGroqForQuestions = async (
   prompt: string,
   stage: string,
 ): Promise<StoredTestQuestion[]> => {
-  let raw: string;
-  try {
-    raw = await groqChatCompletion(
-      [{ role: "user", content: prompt }],
-      { temperature: 0.3, maxTokens: 4096 },
-    );
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Groq request failed";
-    await prisma.systemLogs
-      .create({
-        data: {
-          type: "ai_failure",
-          message,
-          metadata: { stage, provider: "groq" },
-        },
-      })
-      .catch(() => {});
-    throw new AppError(
-      "AI service is unavailable. Please try again in a moment.",
-      502,
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
+    if (attempt > 1) {
+      await sleep(isRateLimited(lastError) ? RATE_LIMIT_BACKOFF_MS * attempt : 1000);
+    }
+
+    let raw: string;
+    try {
+      raw = await groqChatCompletion(
+        [{ role: "user", content: prompt }],
+        { temperature: 0.3, maxTokens: 4096 },
+      );
+    } catch (error: unknown) {
+      lastError = error;
+      continue;
+    }
+
+    const parsed = extractJsonObject(raw);
+    const validated = testSetSchema.safeParse(parsed);
+    if (!validated.success) {
+      lastError = new Error("Malformed JSON for test questions");
+      continue;
+    }
+
+    const stored = toStoredQuestions(validated.data.questions);
+    if (stored.length >= MIN_COHERENT_QUESTIONS) {
+      return stored;
+    }
+    lastError = new Error(
+      `Too few coherent questions generated (${stored.length}/${validated.data.questions.length})`,
     );
   }
 
-  const parsed = extractJsonObject(raw);
-  const validated = testSetSchema.safeParse(parsed);
-  if (!validated.success) {
-    await prisma.systemLogs
-      .create({
-        data: {
-          type: "ai_failure",
-          message: "Groq returned malformed JSON for test questions",
-          metadata: {
-            stage,
-            provider: "groq",
-            issues: JSON.parse(JSON.stringify(validated.error.issues)),
-          },
-        },
-      })
-      .catch(() => {});
-    throw new AppError(
-      "AI returned an unexpected question set. Please try again.",
-      502,
-    );
-  }
-
-  return validated.data.questions.map((q) => ({
-    id: randomUUID(),
-    question_text: q.question_text,
-    options: q.options,
-    correct_answer: q.correct_answer,
-    difficulty: q.difficulty,
-  }));
+  const message =
+    lastError instanceof Error ? lastError.message : "Groq request failed";
+  await prisma.systemLogs
+    .create({
+      data: {
+        type: "ai_failure",
+        message,
+        metadata: { stage, provider: "groq" },
+      },
+    })
+    .catch(() => {});
+  throw new AppError(
+    "AI service was unable to prepare this test. Please try again in a moment.",
+    502,
+  );
 };
 
 type WeekForTest = {

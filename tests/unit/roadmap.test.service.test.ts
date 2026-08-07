@@ -64,6 +64,28 @@ const mockQuestions = [
   },
 ];
 
+// Groq returns the correct answer as the exact option TEXT.
+const mockGroqQuestions = [
+  {
+    question_text: "What does REST stand for?",
+    options: { a: "one", b: "two", c: "three", d: "four" },
+    correct_answer: "two",
+    difficulty: "easy",
+  },
+  {
+    question_text: "HTTP status for created?",
+    options: { a: "one", b: "two", c: "three", d: "four" },
+    correct_answer: "three",
+    difficulty: "medium",
+  },
+  {
+    question_text: "Which is a valid HTTP verb?",
+    options: { a: "one", b: "two", c: "three", d: "four" },
+    correct_answer: "four",
+    difficulty: "medium",
+  },
+];
+
 const mockTest = {
   id: "test-1",
   roadmap_week_id: "week-1",
@@ -74,6 +96,7 @@ const mockTest = {
 describe("roadmapTestService.getWeekTestFromDB", () => {
   beforeEach(() => {
     resetPrismaMocks();
+    groqChatCompletion.mockReset();
     mockPrisma.roadmaps.findFirst.mockResolvedValue(mockRoadmap);
   });
 
@@ -126,11 +149,7 @@ describe("roadmapTestService.getWeekTestFromDB", () => {
 
   it("lazy-generates a test when missing", async () => {
     mockPrisma.roadmapWeekTests.findUnique.mockResolvedValue(null);
-    groqChatCompletion.mockResolvedValue(
-      JSON.stringify({
-        questions: mockQuestions.map(({ difficulty, ...q }) => ({ ...q, difficulty })),
-      }),
-    );
+    groqChatCompletion.mockResolvedValue(JSON.stringify({ questions: mockGroqQuestions }));
     mockPrisma.roadmapWeekTests.create.mockResolvedValue(mockTest);
 
     const result = await roadmapTestService.getWeekTestFromDB(
@@ -142,6 +161,70 @@ describe("roadmapTestService.getWeekTestFromDB", () => {
     expect(groqChatCompletion).toHaveBeenCalled();
     expect(mockPrisma.roadmapWeekTests.create).toHaveBeenCalled();
     expect(result.questions).toHaveLength(2);
+  });
+
+  it("reconciles correct_answer TEXT back to the matching option letter", async () => {
+    mockPrisma.roadmapWeekTests.findUnique.mockResolvedValue(null);
+    groqChatCompletion.mockResolvedValue(JSON.stringify({ questions: mockGroqQuestions }));
+    mockPrisma.roadmapWeekTests.create.mockResolvedValue(mockTest);
+
+    await roadmapTestService.getWeekTestFromDB("user-1", "roadmap-1", "week-1");
+
+    const createArg = mockPrisma.roadmapWeekTests.create.mock.calls[0][0];
+    const stored = createArg.data.questions;
+    expect(stored[0].correct_answer).toBe("b"); // "two" is at option b
+    expect(stored[1].correct_answer).toBe("c"); // "three" is at option c
+  });
+
+  it("retries generation when the correct answer text matches no option", async () => {
+    mockPrisma.roadmapWeekTests.findUnique.mockResolvedValue(null);
+    groqChatCompletion
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          questions: [
+            {
+              question_text: "boo",
+              options: { a: "one", b: "two", c: "three", d: "four" },
+              correct_answer: "not-an-option",
+              difficulty: "easy",
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(JSON.stringify({ questions: mockGroqQuestions }));
+    mockPrisma.roadmapWeekTests.create.mockResolvedValue(mockTest);
+
+    await roadmapTestService.getWeekTestFromDB("user-1", "roadmap-1", "week-1");
+
+    expect(groqChatCompletion).toHaveBeenCalledTimes(2);
+    const createArg = mockPrisma.roadmapWeekTests.create.mock.calls[0][0];
+    expect(createArg.data.questions[0].correct_answer).toBe("b");
+  });
+
+  it("drops incoherent questions but keeps the valid ones", async () => {
+    mockPrisma.roadmapWeekTests.findUnique.mockResolvedValue(null);
+    groqChatCompletion.mockResolvedValue(
+      JSON.stringify({
+        questions: [
+          ...mockGroqQuestions,
+          {
+            question_text: "Broken one",
+            options: { a: "one", b: "two", c: "three", d: "four" },
+            correct_answer: "not-an-option",
+            difficulty: "hard",
+          },
+        ],
+      }),
+    );
+    mockPrisma.roadmapWeekTests.create.mockResolvedValue(mockTest);
+
+    await roadmapTestService.getWeekTestFromDB("user-1", "roadmap-1", "week-1");
+
+    const createArg = mockPrisma.roadmapWeekTests.create.mock.calls[0][0];
+    expect(createArg.data.questions).toHaveLength(3);
+    for (const q of createArg.data.questions) {
+      expect(["a", "b", "c", "d"]).toContain(q.correct_answer);
+    }
   });
 });
 

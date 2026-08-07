@@ -10,7 +10,7 @@ export const testQuestionSchema = z.object({
     c: z.string().min(1),
     d: z.string().min(1),
   }),
-  correct_answer: z.enum(["a", "b", "c", "d"]),
+  correct_answer: z.string().min(1),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
 });
 
