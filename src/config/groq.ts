@@ -3,9 +3,9 @@ import env from "./env.js";
 
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
-// llama-3.1-8b-instant: fastest free-tier model on Groq, ~14 400 req/day.
-// If you hit limits, fall back to "gemma2-9b-it" (also free, slightly slower).
-export const DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant";
+// gpt-oss-20b: recommended replacement after llama-3.1-8b-instant was decommissioned (Aug 16, 2026).
+// Note: no longer free-tier — $0.075/1M input, $0.30/1M output.
+export const DEFAULT_GROQ_MODEL = "gpt-oss-20b";
 
 export type GroqChatMessage = {
   role: "system" | "user" | "assistant";
