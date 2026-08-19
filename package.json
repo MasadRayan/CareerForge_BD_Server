@@ -44,7 +44,6 @@
     "pdfkit": "^0.19.1",
     "pg": "^8.22.0",
     "selenium-webdriver": "^4.46.0",
-    "sslcommerz-lts": "^1.2.0",
     "stripe": "^22.3.2",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
@@ -55,7 +54,8 @@
   "overrides": {
     "jwks-rsa": {
       "jose": "^4.15.9"
-    }
+    },
+    "esbuild": "^0.28.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -81,5 +81,14 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "allowScripts": {
+    "@firebase/util@1.15.2": true,
+    "@prisma/engines@7.9.1": true,
+    "prisma@7.9.1": true,
+    "protobufjs@7.6.5": true,
+    "fsevents@2.3.3": true,
+    "@scarf/scarf": false,
+    "esbuild@0.28.2": true
   }
 }
