@@ -28,7 +28,13 @@ app.disable('x-powered-by')
 app.use(helmet({ crossOriginOpenerPolicy: false }))
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin(origin, callback) {
+      if (!origin || env.FRONTEND_URL.includes(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`))
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

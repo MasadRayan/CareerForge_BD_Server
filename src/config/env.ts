@@ -41,7 +41,15 @@ const envSchema = z.object({
 
 
   // Frontend
-  FRONTEND_URL: z.string().url('FRONTEND_URL must be a valid URL'),
+  FRONTEND_URL: z
+    .string()
+    .min(1, 'FRONTEND_URL is required')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0)
+    ),
   GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY is required'),
   GROQ_API_KEY_2: z.string().min(1, 'GROQ_API_KEY is required'),
 
